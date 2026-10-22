@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ClassTrack – Online Class Scheduler</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#f5f6fa;--card:#fff;--tx:#1b1f2a;--mu:#6b7280;--bd:#e5e7eb;--pr:#4f46e5;--prt:#fff;--gr:#16a34a;--grb:#dcfce7;--rd:#dc2626;--rdb:#fee2e2;--am:#d97706;--amb:#fef3c7;--sh:0 1px 3px rgba(0,0,0,.08)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1117;--card:#181b24;--tx:#e8eaf0;--mu:#9aa0ae;--bd:#2a2e3b;--pr:#818cf8;--prt:#0f1117;--gr:#4ade80;--grb:#12301f;--rd:#f87171;--rdb:#3b1618;--am:#fbbf24;--amb:#3a2d0c;--sh:none}}
+:root[data-theme="dark"]{--bg:#0f1117;--card:#181b24;--tx:#e8eaf0;--mu:#9aa0ae;--bd:#2a2e3b;--pr:#818cf8;--prt:#0f1117;--gr:#4ade80;--grb:#12301f;--rd:#f87171;--rdb:#3b1618;--am:#fbbf24;--amb:#3a2d0c;--sh:none}
+*{box-sizing:border-box}html,body{margin:0}
+body{background:var(--bg);color:var(--tx);font:15px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+header{background:var(--card);border-bottom:1px solid var(--bd);position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+.in{max-width:1100px;margin:0 auto;padding:0 16px}
+.top{display:flex;align-items:center;gap:20px;height:60px;flex-wrap:wrap}
+.logo{font-weight:700;font-size:18px;display:flex;gap:8px;align-items:center}
+.logo i{width:28px;height:28px;border-radius:8px;background:var(--pr);display:inline-block}
+nav{display:flex;gap:4px;margin-left:auto}
+nav button{background:none;border:0;color:var(--mu);padding:8px 14px;border-radius:8px;font:inherit;font-weight:500;cursor:pointer;position:relative}
+nav button.on{background:var(--bg);color:var(--tx)}
+.badge{background:var(--rd);color:#fff;border-radius:99px;font-size:11px;padding:1px 7px;margin-left:6px}
+main{padding:20px 0 40px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:18px;box-shadow:var(--sh)}
+.grid{display:grid;grid-template-columns:1.6fr 1fr;gap:16px}
+@media(max-width:800px){.grid{grid-template-columns:1fr}}
+h2{margin:0 0 12px;font-size:17px}h3{margin:0;font-size:15px}
+.mu{color:var(--mu);font-size:13px}
+.btn{background:var(--pr);color:var(--prt);border:0;border-radius:9px;padding:8px 14px;font:inherit;font-weight:600;cursor:pointer}
+.btn.g{background:var(--bg);color:var(--tx);border:1px solid var(--bd)}
+.btn.d{background:var(--rdb);color:var(--rd)}.btn.sm{padding:5px 10px;font-size:13px}
+.cal-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.cal-h div{display:flex;gap:6px;align-items:center}
+.dow,.days{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.dow span{text-align:center;font-size:12px;color:var(--mu);padding:4px 0}
+.day{aspect-ratio:1/0.9;border:1px solid var(--bd);border-radius:10px;background:var(--card);color:var(--tx);cursor:pointer;padding:6px;text-align:left;font:inherit;display:flex;flex-direction:column;justify-content:space-between;min-height:54px}
+.day:hover{border-color:var(--pr)}.day.o{opacity:.35}.day.t{border-color:var(--pr)}
+.day.s{background:var(--pr);color:var(--prt);border-color:var(--pr)}
+.day small{font-size:11px;font-weight:600;background:var(--amb);color:var(--am);border-radius:6px;padding:0 6px;align-self:flex-start}
+.day.s small{background:rgba(255,255,255,.25);color:inherit}
+.item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--bd);border-radius:10px;margin-bottom:8px;cursor:pointer;background:var(--card)}
+.item:hover{border-color:var(--pr)}.item.nc{cursor:default}.item.nc:hover{border-color:var(--bd)}
+.pill{font-size:12px;padding:2px 9px;border-radius:99px;font-weight:600;white-space:nowrap}
+.p-g{background:var(--grb);color:var(--gr)}.p-r{background:var(--rdb);color:var(--rd)}.p-a{background:var(--amb);color:var(--am)}.p-n{background:var(--bg);color:var(--mu)}
+input,select{font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:9px;padding:8px 10px;width:100%}
+label{font-size:13px;color:var(--mu);display:block;margin:10px 0 4px}
+.row{display:flex;gap:10px}.row>*{flex:1}
+.bar{height:6px;background:var(--bd);border-radius:9px;overflow:hidden;margin-top:6px}.bar i{display:block;height:100%;background:var(--pr)}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
+.ov.on{display:flex}
+.md{background:var(--card);border-radius:16px;width:100%;max-width:520px;max-height:88vh;overflow:auto;padding:22px;border:1px solid var(--bd)}
+.chk{display:flex;align-items:center;gap:8px;padding:6px 0}.chk input{width:auto}
+.seg{display:flex;gap:6px}
+.seg button{border:1px solid var(--bd);background:var(--bg);color:var(--mu);border-radius:8px;padding:5px 12px;font:inherit;cursor:pointer;font-weight:600}
+.seg button.p.on{background:var(--grb);color:var(--gr);border-color:var(--gr)}
+.seg button.a.on{background:var(--rdb);color:var(--rd);border-color:var(--rd)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.chip{padding:8px 12px;border-radius:10px;font-size:13px;font-weight:600;text-align:center;border:1px solid transparent}
+.seg button.r.on{background:var(--amb);color:var(--am);border-color:var(--am)}
+.chip.y{background:var(--amb);color:var(--am);border-color:var(--am)}
+.chip.g{background:var(--grb);color:var(--gr);border-color:var(--gr)}.chip.r{background:var(--rdb);color:var(--rd);border-color:var(--rd)}.chip.n{background:var(--bg);color:var(--mu);border-color:var(--bd)}
+.chip span{display:block;font-weight:400;font-size:11px}
+.empty{text-align:center;color:var(--mu);padding:24px 0}
+.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:10px 16px;border-radius:10px;z-index:30;display:none;font-size:14px}
+</style>
+</head>
+<body>
+<header><div class="in top">
+  <div class="logo"><i></i>ClassTrack</div>
+  <nav>
+    <button data-v="cal" class="on">Calendar</button>
+    <button data-v="stu">Students</button>
+    <button data-v="bat">Batches</button>
+    <button data-v="done">Completed<span class="badge" id="bd" hidden></span></button>
+  </nav>
+</div></header>
+<main class="in">
+  <section id="cal"></section>
+  <section id="stu" hidden></section>
+  <section id="bat" hidden></section>
+  <section id="done" hidden></section>
+</main>
+<div class="ov" id="ov"><div class="md" id="md"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+const KEY='classtrack_v1';
+let S={students:[],batches:[],classes:[],att:{}};
+/* ---- Backend sync: diffs state and calls the REST API ---- */
+const api=(m,u,b)=>fetch('/api'+u,{method:m,headers:{'Content-Type':'application/json'},body:b?JSON.stringify(b):undefined}).then(r=>{if(!r.ok&&r.status!==404)throw new Error(r.status);return r});
+const j=x=>JSON.stringify(x);let snap=j(S);
+async function loadState(){try{const r=await fetch('/api/state');if(!r.ok)throw 0;S=await r.json()}catch(e){toast('Cannot reach the server – is it running?')}snap=j(S)}
+async function sync(){
+ const old=JSON.parse(snap),cur=JSON.parse(j(S));snap=j(cur);
+ for(const c of ['students','batches','classes']){
+  const o={},n={};old[c].forEach(x=>o[x.id]=x);cur[c].forEach(x=>n[x.id]=x);
+  for(const x of cur[c]){if(!o[x.id])await api('POST','/'+c,x);else if(j(o[x.id])!==j(x))await api('PUT','/'+c+'/'+x.id,x)}
+  for(const id in o)if(!n[id])await api('DELETE','/'+c+'/'+id)}
+ for(const cid in cur.att)for(const sid in cur.att[cid]){const v=cur.att[cid][sid];if(!old.att[cid]||old.att[cid][sid]!==v)await api('PUT','/attendance',{classId:cid,studentId:sid,status:v})}
+ for(const cid in old.att)for(const sid in old.att[cid])if(!cur.att[cid]||!cur.att[cid][sid])await api('DELETE','/attendance/'+cid+'/'+sid)}
+let q=Promise.resolve();
+const save=()=>{q=q.then(sync).catch(()=>toast('Save failed – is the server running?'))};
+const $=id=>document.getElementById(id);
+const uid=()=>Math.random().toString(36).slice(2,9);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const ymd=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const today=ymd(new Date());
+let view='cal',cur=new Date(),sel=today;
+cur.setDate(1);
+const fmt=d=>new Date(d+'T00:00').toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+const stu=id=>S.students.find(s=>s.id===id);
+const bn=c=>{const b=S.batches.find(x=>x.id===c.bid);return b?esc(b.name)+' · ':''};
+const toast=m=>{const t=$('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2800)};
+const isOver=(c,sid)=>!!(S.att[c.id]&&S.att[c.id][sid])||new Date(c.date+'T'+(c.time||'00:00')).getTime()+36e5<Date.now();
+const scheduled=sid=>S.classes.filter(c=>c.sids.includes(sid)).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+function stats(s){const l=scheduled(s.id);const over=l.filter(c=>isOver(c,s.id));
+  return{list:l,over:over.length,total:l.length,done:s.quota>0&&l.length>=s.quota&&over.length===l.length}}
+
+function open(html){$('md').innerHTML=html;$('ov').classList.add('on')}
+function close(){$('ov').classList.remove('on')}
+function confirmBox(msg,fn){open(`<h2>Please confirm</h2><p>${msg}</p><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn g" id="cn0">Cancel</button><button class="btn d" id="cy0">Yes, continue</button></div>`);$('cn0').onclick=close;$('cy0').onclick=fn}
+$('ov').addEventListener('click',e=>{if(e.target.id==='ov')close()});
+
+/* ---------- Calendar ---------- */
+function renderCal(){
+  const y=cur.getFullYear(),m=cur.getMonth();
+  const first=new Date(y,m,1).getDay(),dim=new Date(y,m+1,0).getDate();
+  let cells='';
+  for(let i=0;i<first;i++)cells+='<div></div>';
+  for(let d=1;d<=dim;d++){
+    const k=y+'-'+pad(m+1)+'-'+pad(d),n=S.classes.filter(c=>c.date===k).length;
+    cells+=`<button class="day ${k===today?'t':''} ${k===sel?'s':''}" data-d="${k}"><b>${d}</b>${n?`<small>${n} class${n>1?'es':''}</small>`:'<span></span>'}</button>`}
+  const cl=S.classes.filter(c=>c.date===sel).sort((a,b)=>a.time.localeCompare(b.time));
+  $('cal').innerHTML=`<div class="grid">
+   <div class="card"><div class="cal-h"><h2 style="margin:0">${cur.toLocaleDateString(undefined,{month:'long',year:'numeric'})}</h2>
+    <div><button class="btn g sm" id="pv">‹</button><button class="btn g sm" id="tdy">Today</button><button class="btn g sm" id="nx">›</button></div></div>
+    <div class="dow">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(x=>`<span>${x}</span>`).join('')}</div><div class="days">${cells}</div></div>
+   <div class="card"><div class="cal-h"><div style="display:block"><h2 style="margin:0">${fmt(sel)}</h2><span class="mu">${cl.length} scheduled</span></div><button class="btn sm" id="add">+ Class</button></div>
+    ${cl.length?cl.map(c=>{const p=Object.values(S.att[c.id]||{}).filter(v=>v==='p').length,mk=Object.keys(S.att[c.id]||{}).length;
+      return `<div class="item" data-c="${c.id}"><div><h3>${esc(c.name)}</h3><span class="mu">${bn(c)}${c.time} · ${c.sids.length} student${c.sids.length!==1?'s':''}</span></div>
+      <span class="pill ${mk?'p-g':'p-n'}">${mk?p+'/'+c.sids.length+' present':'Not marked'}</span></div>`}).join(''):'<div class="empty">No classes on this date.</div>'}
+   </div></div>`;
+  $('pv').onclick=()=>{cur.setMonth(cur.getMonth()-1);renderCal()};
+  $('nx').onclick=()=>{cur.setMonth(cur.getMonth()+1);renderCal()};
+  $('tdy').onclick=()=>{cur=new Date();cur.setDate(1);sel=today;renderCal()};
+  $('add').onclick=classForm;
+  document.querySelectorAll('.day[data-d]').forEach(b=>b.onclick=()=>{sel=b.dataset.d;renderCal()});
+  document.querySelectorAll('.item[data-c]').forEach(b=>b.onclick=()=>attend(b.dataset.c));
+}
+
+function classForm(){
+  if(!S.batches.length){toast('Create a batch first (Batches tab).');return}
+  open(`<h2>Schedule online class</h2>
+   <label>Class name</label><input id="cn" placeholder="e.g. Maths – Algebra">
+   <div class="row"><div><label>Date</label><input id="cd" type="date" value="${sel}"></div><div><label>Time</label><input id="ct" type="time" value="10:00"></div></div>
+   <label>Repeat weekly (number of total sessions)</label><input id="cr" type="number" min="1" max="52" value="1">
+   <label>Batch</label><select id="cb">${S.batches.map(b=>`<option value="${b.id}">${esc(b.name)} (${b.sids.length} students)</option>`).join('')}</select>
+   <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn g" id="cx">Cancel</button><button class="btn" id="cs">Schedule</button></div>`);
+  $('cx').onclick=close;
+  $('cs').onclick=()=>{
+    const name=$('cn').value.trim(),date=$('cd').value,time=$('ct').value,rep=Math.max(1,+$('cr').value||1);
+    const bid=$('cb').value,bt=S.batches.find(x=>x.id===bid),ids=bt?bt.sids.filter(id=>stu(id)):[];
+    if(!name||!date||!time||!ids.length){toast('Fill name, date, time and pick a batch with students.');return}
+    let made=0,skipped=new Set();
+    for(let r=0;r<rep;r++){
+      const d=new Date(date+'T00:00');d.setDate(d.getDate()+7*r);
+      const ok=ids.filter(id=>{const s=stu(id);if(scheduled(id).length<s.quota)return true;skipped.add(s.name);return false});
+      if(ok.length){S.classes.push({id:uid(),name,date:ymd(d),time,bid,sids:ok});made++}
+    }
+    save();close();render();
+    toast(made?`Scheduled ${made} class${made>1?'es':''}.`+(skipped.size?` Quota reached: ${[...skipped].join(', ')}`:''):'No classes created – quota reached for selected students.');
+  };
+}
+
+function attend(cid){
+  const c=S.classes.find(x=>x.id===cid);if(!c)return;
+  const a=S.att[cid]||(S.att[cid]={});
+  open(`<h2>${esc(c.name)}</h2><p class="mu" style="margin-top:-6px">${bn(c)}${fmt(c.date)} · ${c.time}</p>
+   ${c.sids.map(id=>{const s=stu(id);if(!s)return'';const v=a[id];
+     return `<div class="item nc"><div><h3>${esc(s.name)}</h3></div><div class="seg" data-s="${id}">
+      <button class="p ${v==='p'?'on':''}" data-v="p">Present</button><button class="a ${v==='a'?'on':''}" data-v="a">Absent</button><button class="r ${v==='r'?'on':''}" data-v="r">Record</button></div></div>`}).join('')}
+   <div style="display:flex;gap:8px;justify-content:space-between;margin-top:14px">
+    <button class="btn d" id="dc">Delete class</button>
+    <div style="display:flex;gap:8px"><button class="btn g" id="ap">All present</button><button class="btn" id="dn">Done</button></div></div>`);
+  document.querySelectorAll('#md .seg button').forEach(b=>b.onclick=()=>{
+    const id=b.parentNode.dataset.s;a[id]=a[id]===b.dataset.v?undefined:b.dataset.v;if(!a[id])delete a[id];
+    save();attend(cid);render()});
+  $('ap').onclick=()=>{c.sids.forEach(id=>a[id]='p');save();attend(cid);render()};
+  $('dn').onclick=close;
+  $('dc').onclick=()=>confirmBox('Delete this class?',()=>{S.classes=S.classes.filter(x=>x.id!==cid);delete S.att[cid];save();close();render()});
+}
+
+/* ---------- Students ---------- */
+function renderStu(){
+  $('stu').innerHTML=`<div class="grid" style="grid-template-columns:1fr 1.4fr">
+   <div class="card"><h2>Add student</h2><label>Name</label><input id="sn" placeholder="Student name">
+    <label>Number of classes allowed</label><input id="sq" type="number" min="1" value="8">
+    <button class="btn" id="sa" style="margin-top:14px;width:100%">Add student</button>
+    <label style="margin-top:16px">Or paste a list (one per line, optional “, 8” for classes)</label>
+    <textarea id="sb" rows="4" style="width:100%;font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:9px;padding:8px" placeholder="Anita, 8&#10;Ravi, 10"></textarea>
+    <button class="btn g" id="sbb" style="margin-top:8px;width:100%">Import list</button></div>
+   <div class="card"><h2>Students (${S.students.length})</h2>
+    ${S.students.length?S.students.map(s=>{const t=scheduled(s.id).length,p=Math.min(100,t/s.quota*100);
+      return `<div class="item nc"><div style="flex:1"><h3>${esc(s.name)}</h3><span class="mu">${t} of ${s.quota} classes scheduled</span><div class="bar"><i style="width:${p}%"></i></div></div>
+      <div style="display:flex;gap:6px"><button class="btn g sm" data-q="${s.id}">Edit quota</button><button class="btn d sm" data-x="${s.id}">Remove</button></div></div>`}).join(''):'<div class="empty">No students yet.</div>'}</div></div>`;
+  const add=(n,q)=>{if(n)S.students.push({id:uid(),name:n,quota:Math.max(1,q||8)})};
+  $('sa').onclick=()=>{const n=$('sn').value.trim();if(!n){toast('Enter a name.');return}add(n,+$('sq').value);save();render()};
+  $('sbb').onclick=()=>{$('sb').value.split('\n').forEach(l=>{const[p,q]=l.split(',');if(p&&p.trim())add(p.trim(),parseInt(q))});save();render()};
+  document.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>confirmBox('Remove this student and their schedule entries?',()=>{const id=b.dataset.x;
+    S.students=S.students.filter(s=>s.id!==id);S.batches.forEach(b=>b.sids=b.sids.filter(x=>x!==id));S.classes.forEach(c=>c.sids=c.sids.filter(x=>x!==id));S.classes=S.classes.filter(c=>c.sids.length);save();close();render()}));
+  document.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{const s=stu(b.dataset.q);
+    open(`<h2>Edit classes for ${esc(s.name)}</h2><p class="mu">Already scheduled: ${scheduled(s.id).length}</p><label>Number of classes allowed</label><input id="qv" type="number" min="1" value="${s.quota}"><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn g" id="qx">Cancel</button><button class="btn" id="qs">Save</button></div>`);
+    $('qx').onclick=close;
+    $('qs').onclick=()=>{const v=parseInt($('qv').value);if(!(v>0)){toast('Enter a valid number.');return}s.quota=v;save();close();render()}});
+}
+
+/* ---------- Completed ---------- */
+function renderDone(){
+  const list=S.students.map(s=>({s,st:stats(s)})).filter(x=>x.st.done);
+  $('done').innerHTML=`<div class="card"><h2>Students whose scheduled classes are over</h2>
+   <p class="mu" style="margin-top:-6px">Shown once all allotted classes are scheduled and finished, whether attended or not.</p>
+   ${list.length?list.map(({s,st})=>{const pr=st.list.filter(c=>S.att[c.id]&&S.att[c.id][s.id]==='p').length,rc=st.list.filter(c=>S.att[c.id]&&S.att[c.id][s.id]==='r').length;
+    return `<div class="item" data-s="${s.id}"><div><h3>${esc(s.name)}</h3><span class="mu">${st.total} classes completed</span></div>
+    <div><span class="pill p-g">${pr} attended</span> <span class="pill p-a">${rc} record</span> <span class="pill p-r">${st.total-pr-rc} missed</span></div></div>`}).join(''):'<div class="empty">No students have completed their scheduled classes yet.</div>'}</div>`;
+  document.querySelectorAll('#done .item').forEach(b=>b.onclick=()=>{
+    const s=stu(b.dataset.s),st=stats(s);
+    open(`<h2>${esc(s.name)}</h2><p class="mu" style="margin-top:-6px">Attendance across ${st.total} scheduled classes</p>
+     <div style="display:flex;gap:8px;flex-wrap:wrap"><span class="pill p-g">Attended</span><span class="pill p-r">Not attended</span><span class="pill p-a">Record</span></div>
+     <div class="chips">${st.list.map(c=>{const v=S.att[c.id]&&S.att[c.id][s.id];
+      const cls=v==='p'?'g':v==='r'?'y':'r';
+      return `<div class="chip ${cls}">${new Date(c.date+'T00:00').toLocaleDateString(undefined,{day:'numeric',month:'short'})}<span>${esc(c.name)}</span></div>`}).join('')}</div>
+     <div style="text-align:right;margin-top:16px"><button class="btn" id="cl">Close</button></div>`);
+    $('cl').onclick=close});
+}
+
+function batchForm(id){
+  const b=id?S.batches.find(x=>x.id===id):{name:'',sids:[]};
+  open(`<h2>${id?'Edit batch':'New batch'}</h2><label>Batch name</label><input id="bnm" value="${esc(b.name)}" placeholder="e.g. Morning Batch A">
+   <label>Students in this batch</label>${S.students.length?S.students.map(s=>`<label class="chk" style="color:var(--tx);font-size:14px"><input type="checkbox" value="${s.id}" ${b.sids.includes(s.id)?'checked':''}> ${esc(s.name)}</label>`).join(''):'<div class="mu">Add students first in the Students tab.</div>'}
+   <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn g" id="bx">Cancel</button><button class="btn" id="bs">Save batch</button></div>`);
+  $('bx').onclick=close;
+  $('bs').onclick=()=>{const name=$('bnm').value.trim(),ids=[...document.querySelectorAll('#md .chk input:checked')].map(i=>i.value);
+    if(!name){toast('Enter a batch name.');return}
+    if(id){b.name=name;b.sids=ids}else S.batches.push({id:uid(),name,sids:ids});
+    save();close();render()};
+}
+function renderBat(){
+  $('bat').innerHTML=`<div class="card"><div class="cal-h"><h2 style="margin:0">Batches (${S.batches.length})</h2><button class="btn sm" id="nb">+ New batch</button></div>
+   ${S.batches.length?S.batches.map(b=>`<div class="item nc"><div style="flex:1"><h3>${esc(b.name)}</h3><span class="mu">${b.sids.length} student${b.sids.length!==1?'s':''}: ${b.sids.map(i=>stu(i)).filter(Boolean).map(s=>esc(s.name)).join(', ')||'none'}</span></div><div style="display:flex;gap:6px"><button class="btn g sm" data-be="${b.id}">Edit</button><button class="btn d sm" data-bd="${b.id}">Delete</button></div></div>`).join(''):'<div class="empty">No batches yet. Create one, then assign it to a date in the calendar.</div>'}</div>`;
+  $('nb').onclick=()=>batchForm();
+  document.querySelectorAll('[data-be]').forEach(x=>x.onclick=()=>batchForm(x.dataset.be));
+  document.querySelectorAll('[data-bd]').forEach(x=>x.onclick=()=>confirmBox('Delete this batch? Already scheduled classes stay.',()=>{S.batches=S.batches.filter(b=>b.id!==x.dataset.bd);save();close();render()}));
+}
+function render(){
+  const n=S.students.filter(s=>stats(s).done).length,b=$('bd');b.hidden=!n;b.textContent=n;
+  ['cal','stu','bat','done'].forEach(v=>$(v).hidden=v!==view);
+  if(view==='cal')renderCal();if(view==='stu')renderStu();if(view==='bat')renderBat();if(view==='done')renderDone();
+}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{view=b.dataset.v;
+  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));render()});
+loadState().then(render);setInterval(()=>{const n=S.students.filter(s=>stats(s).done).length;$('bd').hidden=!n;$('bd').textContent=n},60000);
+})();
+</script>
+</body>
+</html>
