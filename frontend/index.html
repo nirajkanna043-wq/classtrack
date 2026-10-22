@@ -192,16 +192,68 @@ function classForm(){
   };
 }
 
+const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+function getNextDateForDay(dayIndex) {
+  const d = new Date();
+  d.setHours(0,0,0,0);
+  const diff = (dayIndex - d.getDay() + 7) % 7;
+  d.setDate(d.getDate() + diff);
+  return ymd(d);
+}
+
+function showStudentHistory(sid){
+  const s = stu(sid);
+  if (!s) return;
+  const list = scheduled(s.id);
+  const pr = list.filter(c => S.att[c.id] && S.att[c.id][s.id] === 'p').length;
+  const ab = list.filter(c => S.att[c.id] && S.att[c.id][s.id] === 'a').length;
+  const rc = list.filter(c => S.att[c.id] && S.att[c.id][s.id] === 'r').length;
+  const un = list.filter(c => !S.att[c.id] || !S.att[c.id][s.id]).length;
+
+  open(`<h2>${esc(s.name)}</h2>
+    <p class="mu" style="margin-top:-6px">Attendance History · ${list.length} of ${s.quota} classes scheduled</p>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+      <span class="pill p-g">${pr} Present</span>
+      <span class="pill p-r">${ab} Absent</span>
+      <span class="pill p-a">${rc} Record</span>
+      <span class="pill p-n">${un} Upcoming / Unmarked</span>
+    </div>
+    ${list.length ? `
+      <div style="max-height:55vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px">
+        ${list.map(c => {
+          const v = S.att[c.id] && S.att[c.id][s.id];
+          const badge = v === 'p' ? '<span class="pill p-g">Present</span>'
+                      : v === 'a' ? '<span class="pill p-r">Absent</span>'
+                      : v === 'r' ? '<span class="pill p-a">Record</span>'
+                      : '<span class="pill p-n">Upcoming</span>';
+          return `<div class="item nc" style="margin-bottom:0">
+            <div>
+              <h3>${esc(c.name)}</h3>
+              <span class="mu">${bn(c)}${fmt(c.date)} · ${c.time}</span>
+            </div>
+            <div>${badge}</div>
+          </div>`;
+        }).join('')}
+      </div>`
+      : '<div class="empty">No classes scheduled for this student yet.</div>'
+    }
+    <div style="display:flex;justify-content:flex-end;margin-top:16px">
+      <button class="btn" id="clh">Close</button>
+    </div>`);
+  $('clh').onclick = close;
+}
+
 function attend(cid){
   const c=S.classes.find(x=>x.id===cid);if(!c)return;
   const a=S.att[cid]||(S.att[cid]={});
   open(`<h2>${esc(c.name)}</h2><p class="mu" style="margin-top:-6px">${bn(c)}${fmt(c.date)} · ${c.time}</p>
    ${c.sids.map(id=>{const s=stu(id);if(!s)return'';const v=a[id];
-     return `<div class="item nc"><div><h3>${esc(s.name)}</h3></div><div class="seg" data-s="${id}">
+     return `<div class="item nc"><div><h3 style="cursor:pointer;color:var(--pr);text-decoration:underline" data-sh="${id}" title="Click to view attendance history">${esc(s.name)}</h3></div><div class="seg" data-s="${id}">
       <button class="p ${v==='p'?'on':''}" data-v="p">Present</button><button class="a ${v==='a'?'on':''}" data-v="a">Absent</button><button class="r ${v==='r'?'on':''}" data-v="r">Record</button></div></div>`}).join('')}
    <div style="display:flex;gap:8px;justify-content:space-between;margin-top:14px">
     <button class="btn d" id="dc">Delete class</button>
     <div style="display:flex;gap:8px"><button class="btn g" id="ap">All present</button><button class="btn" id="dn">Done</button></div></div>`);
+  document.querySelectorAll('#md [data-sh]').forEach(el => el.onclick = () => showStudentHistory(el.dataset.sh));
   document.querySelectorAll('#md .seg button').forEach(b=>b.onclick=()=>{
     const id=b.parentNode.dataset.s;a[id]=a[id]===b.dataset.v?undefined:b.dataset.v;if(!a[id])delete a[id];
     save();attend(cid);render()});
@@ -219,16 +271,17 @@ function renderStu(){
     <label style="margin-top:16px">Or paste a list (one per line, optional “, 8” for classes)</label>
     <textarea id="sb" rows="4" style="width:100%;font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:9px;padding:8px" placeholder="Anita, 8&#10;Ravi, 10"></textarea>
     <button class="btn g" id="sbb" style="margin-top:8px;width:100%">Import list</button></div>
-   <div class="card"><h2>Students (${S.students.length})</h2>
+   <div class="card"><div class="cal-h"><h2 style="margin:0">Students (${S.students.length})</h2><span class="mu">Click any name for history</span></div>
     ${S.students.length?S.students.map(s=>{const t=scheduled(s.id).length,p=Math.min(100,t/s.quota*100);
-      return `<div class="item nc"><div style="flex:1"><h3>${esc(s.name)}</h3><span class="mu">${t} of ${s.quota} classes scheduled</span><div class="bar"><i style="width:${p}%"></i></div></div>
-      <div style="display:flex;gap:6px"><button class="btn g sm" data-q="${s.id}">Edit quota</button><button class="btn d sm" data-x="${s.id}">Remove</button></div></div>`}).join(''):'<div class="empty">No students yet.</div>'}</div></div>`;
+      return `<div class="item" data-sh="${s.id}" title="Click to view attendance history" style="cursor:pointer"><div style="flex:1"><h3 style="color:var(--pr);text-decoration:underline">${esc(s.name)}</h3><span class="mu">${t} of ${s.quota} classes scheduled</span><div class="bar"><i style="width:${p}%"></i></div></div>
+      <div style="display:flex;gap:6px" onclick="event.stopPropagation()"><button class="btn g sm" data-q="${s.id}">Edit quota</button><button class="btn d sm" data-x="${s.id}">Remove</button></div></div>`}).join(''):'<div class="empty">No students yet.</div>'}</div></div>`;
   const add=(n,q)=>{if(n)S.students.push({id:uid(),name:n,quota:Math.max(1,q||8)})};
   $('sa').onclick=()=>{const n=$('sn').value.trim();if(!n){toast('Enter a name.');return}add(n,+$('sq').value);save();render()};
   $('sbb').onclick=()=>{$('sb').value.split('\n').forEach(l=>{const[p,q]=l.split(',');if(p&&p.trim())add(p.trim(),parseInt(q))});save();render()};
-  document.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>confirmBox('Remove this student and their schedule entries?',()=>{const id=b.dataset.x;
-    S.students=S.students.filter(s=>s.id!==id);S.batches.forEach(b=>b.sids=b.sids.filter(x=>x!==id));S.classes.forEach(c=>c.sids=c.sids.filter(x=>x!==id));S.classes=S.classes.filter(c=>c.sids.length);save();close();render()}));
-  document.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>{const s=stu(b.dataset.q);
+  document.querySelectorAll('#stu [data-sh]').forEach(el => el.onclick = () => showStudentHistory(el.dataset.sh));
+  document.querySelectorAll('[data-x]').forEach(b=>b.onclick=e=>{e.stopPropagation();confirmBox('Remove this student and their schedule entries?',()=>{const id=b.dataset.x;
+    S.students=S.students.filter(s=>s.id!==id);S.batches.forEach(b=>b.sids=b.sids.filter(x=>x!==id));S.classes.forEach(c=>c.sids=c.sids.filter(x=>x!==id));S.classes=S.classes.filter(c=>c.sids.length);save();close();render()})});
+  document.querySelectorAll('[data-q]').forEach(b=>b.onclick=e=>{e.stopPropagation();const s=stu(b.dataset.q);
     open(`<h2>Edit classes for ${esc(s.name)}</h2><p class="mu">Already scheduled: ${scheduled(s.id).length}</p><label>Number of classes allowed</label><input id="qv" type="number" min="1" value="${s.quota}"><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn g" id="qx">Cancel</button><button class="btn" id="qs">Save</button></div>`);
     $('qx').onclick=close;
     $('qs').onclick=()=>{const v=parseInt($('qv').value);if(!(v>0)){toast('Enter a valid number.');return}s.quota=v;save();close();render()}});
@@ -240,34 +293,162 @@ function renderDone(){
   $('done').innerHTML=`<div class="card"><h2>Students whose scheduled classes are over</h2>
    <p class="mu" style="margin-top:-6px">Shown once all allotted classes are scheduled and finished, whether attended or not.</p>
    ${list.length?list.map(({s,st})=>{const pr=st.list.filter(c=>S.att[c.id]&&S.att[c.id][s.id]==='p').length,rc=st.list.filter(c=>S.att[c.id]&&S.att[c.id][s.id]==='r').length;
-    return `<div class="item" data-s="${s.id}"><div><h3>${esc(s.name)}</h3><span class="mu">${st.total} classes completed</span></div>
+    return `<div class="item" data-sh="${s.id}" style="cursor:pointer" title="Click to view attendance history"><div><h3 style="color:var(--pr);text-decoration:underline">${esc(s.name)}</h3><span class="mu">${st.total} classes completed</span></div>
     <div><span class="pill p-g">${pr} attended</span> <span class="pill p-a">${rc} record</span> <span class="pill p-r">${st.total-pr-rc} missed</span></div></div>`}).join(''):'<div class="empty">No students have completed their scheduled classes yet.</div>'}</div>`;
-  document.querySelectorAll('#done .item').forEach(b=>b.onclick=()=>{
-    const s=stu(b.dataset.s),st=stats(s);
-    open(`<h2>${esc(s.name)}</h2><p class="mu" style="margin-top:-6px">Attendance across ${st.total} scheduled classes</p>
-     <div style="display:flex;gap:8px;flex-wrap:wrap"><span class="pill p-g">Attended</span><span class="pill p-r">Not attended</span><span class="pill p-a">Record</span></div>
-     <div class="chips">${st.list.map(c=>{const v=S.att[c.id]&&S.att[c.id][s.id];
-      const cls=v==='p'?'g':v==='r'?'y':'r';
-      return `<div class="chip ${cls}">${new Date(c.date+'T00:00').toLocaleDateString(undefined,{day:'numeric',month:'short'})}<span>${esc(c.name)}</span></div>`}).join('')}</div>
-     <div style="text-align:right;margin-top:16px"><button class="btn" id="cl">Close</button></div>`);
-    $('cl').onclick=close});
+  document.querySelectorAll('#done [data-sh]').forEach(b=>b.onclick=()=>showStudentHistory(b.dataset.sh));
 }
 
 function batchForm(id){
-  const b=id?S.batches.find(x=>x.id===id):{name:'',sids:[]};
-  open(`<h2>${id?'Edit batch':'New batch'}</h2><label>Batch name</label><input id="bnm" value="${esc(b.name)}" placeholder="e.g. Morning Batch A">
-   <label>Students in this batch</label>${S.students.length?S.students.map(s=>`<label class="chk" style="color:var(--tx);font-size:14px"><input type="checkbox" value="${s.id}" ${b.sids.includes(s.id)?'checked':''}> ${esc(s.name)}</label>`).join(''):'<div class="mu">Add students first in the Students tab.</div>'}
-   <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn g" id="bx">Cancel</button><button class="btn" id="bs">Save batch</button></div>`);
-  $('bx').onclick=close;
-  $('bs').onclick=()=>{const name=$('bnm').value.trim(),ids=[...document.querySelectorAll('#md .chk input:checked')].map(i=>i.value);
-    if(!name){toast('Enter a batch name.');return}
-    if(id){b.name=name;b.sids=ids}else S.batches.push({id:uid(),name,sids:ids});
-    save();close();render()};
+  const b = id ? S.batches.find(x => x.id === id) : { name: '', sids: [], day: (new Date().getDay() + 1) % 7, time: '10:00' };
+  const initialDay = (b.day !== undefined && b.day !== null) ? parseInt(b.day) : ((new Date().getDay() + 1) % 7);
+  const initialDate = getNextDateForDay(initialDay);
+
+  open(`<h2>${id ? 'Edit batch' : 'New batch'}</h2>
+    <label>Batch name</label>
+    <input id="bnm" value="${esc(b.name)}" placeholder="e.g. Morning Batch A">
+    
+    <div class="row">
+      <div>
+        <label>Class Day (every week)</label>
+        <select id="bday">
+          ${DAYS.map((d, i) => `<option value="${i}" ${i === initialDay ? 'selected' : ''}>${d}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <label>Class Time</label>
+        <input id="btm" type="time" value="${b.time || '10:00'}">
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label>First Class Date</label>
+        <input id="bstart" type="date" value="${initialDate}">
+      </div>
+      <div>
+        <label>Number of weekly sessions</label>
+        <input id="brep" type="number" min="1" max="52" value="8">
+      </div>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+      <label style="margin:0">Students in this batch</label>
+      ${S.students.length ? '<button type="button" class="btn g sm" id="ball" style="padding:2px 8px;font-size:11px">Select All</button>' : ''}
+    </div>
+    ${S.students.length ? `
+      <div style="max-height:160px;overflow-y:auto;border:1px solid var(--bd);border-radius:9px;padding:8px;margin-top:4px">
+        ${S.students.map(s => `
+          <label class="chk" style="color:var(--tx);font-size:14px">
+            <input type="checkbox" value="${s.id}" ${b.sids.includes(s.id) ? 'checked' : ''}> ${esc(s.name)}
+          </label>
+        `).join('')}
+      </div>` : '<div class="mu">Add students first in the Students tab.</div>'
+    }
+
+    ${id ? `<label class="chk" style="margin-top:10px"><input type="checkbox" id="bsched"> Also schedule new weekly classes for this batch</label>` : ''}
+
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
+      <button class="btn g" id="bx">Cancel</button>
+      <button class="btn" id="bs">${id ? 'Save batch' : 'Save & Schedule Batch'}</button>
+    </div>`);
+
+  $('bx').onclick = close;
+  if ($('ball')) {
+    $('ball').onclick = () => {
+      const inputs = document.querySelectorAll('#md .chk input[type="checkbox"]');
+      const allChecked = [...inputs].every(i => i.checked);
+      inputs.forEach(i => i.checked = !allChecked);
+      $('ball').textContent = allChecked ? 'Select All' : 'Deselect All';
+    };
+  }
+
+  $('bday').onchange = () => {
+    $('bstart').value = getNextDateForDay(parseInt($('bday').value));
+  };
+
+  $('bs').onclick = () => {
+    const name = $('bnm').value.trim();
+    const day = parseInt($('bday').value);
+    const time = $('btm').value;
+    const startDate = $('bstart').value;
+    const rep = Math.max(1, parseInt($('brep').value) || 1);
+    const ids = [...document.querySelectorAll('#md .chk input[type="checkbox"]:checked')].map(i => i.value);
+
+    if (!name) { toast('Enter a batch name.'); return; }
+    if (!time) { toast('Enter a class time.'); return; }
+    if (!startDate) { toast('Select a start date.'); return; }
+
+    let batchId = id;
+    if (id) {
+      b.name = name;
+      b.sids = ids;
+      b.day = day;
+      b.time = time;
+    } else {
+      batchId = uid();
+      const newBatch = { id: batchId, name, sids: ids, day, time };
+      S.batches.push(newBatch);
+    }
+
+    const shouldSchedule = !id || ($('bsched') && $('bsched').checked);
+    let made = 0;
+    const skipped = new Set();
+
+    if (shouldSchedule && ids.length) {
+      for (let r = 0; r < rep; r++) {
+        const d = new Date(startDate + 'T00:00');
+        d.setDate(d.getDate() + 7 * r);
+        const ok = ids.filter(sid => {
+          const s = stu(sid);
+          if (!s) return false;
+          if (scheduled(sid).length < s.quota) return true;
+          skipped.add(s.name);
+          return false;
+        });
+        if (ok.length) {
+          S.classes.push({
+            id: uid(),
+            name: `${name} (Session ${r + 1})`,
+            date: ymd(d),
+            time,
+            bid: batchId,
+            sids: ok
+          });
+          made++;
+        }
+      }
+    }
+
+    save();
+    close();
+    render();
+
+    if (shouldSchedule) {
+      if (made) {
+        toast(`Batch saved! Scheduled ${made} weekly classes.` + (skipped.size ? ` (Quota reached for: ${[...skipped].join(', ')})` : ''));
+      } else if (ids.length) {
+        toast('Batch saved, but students reached quota so no classes were added.');
+      } else {
+        toast('Batch saved without classes (no students selected).');
+      }
+    } else {
+      toast('Batch updated successfully.');
+    }
+  };
 }
+
 function renderBat(){
   $('bat').innerHTML=`<div class="card"><div class="cal-h"><h2 style="margin:0">Batches (${S.batches.length})</h2><button class="btn sm" id="nb">+ New batch</button></div>
-   ${S.batches.length?S.batches.map(b=>`<div class="item nc"><div style="flex:1"><h3>${esc(b.name)}</h3><span class="mu">${b.sids.length} student${b.sids.length!==1?'s':''}: ${b.sids.map(i=>stu(i)).filter(Boolean).map(s=>esc(s.name)).join(', ')||'none'}</span></div><div style="display:flex;gap:6px"><button class="btn g sm" data-be="${b.id}">Edit</button><button class="btn d sm" data-bd="${b.id}">Delete</button></div></div>`).join(''):'<div class="empty">No batches yet. Create one, then assign it to a date in the calendar.</div>'}</div>`;
+   ${S.batches.length?S.batches.map(b=>{
+     const schedInfo = (b.day !== undefined && b.day !== null && DAYS[b.day]) ? `${DAYS[b.day]}s at ${b.time || '10:00'} · ` : '';
+     return `<div class="item nc"><div style="flex:1">
+       <h3>${esc(b.name)}</h3>
+       <span class="mu">${schedInfo}${b.sids.length} student${b.sids.length!==1?'s':''}: ${b.sids.map(i=>stu(i)).filter(Boolean).map(s=>`<span style="color:var(--pr);text-decoration:underline;cursor:pointer" data-sh="${s.id}" title="Click to view attendance history">${esc(s.name)}</span>`).join(', ')||'none'}</span>
+     </div>
+     <div style="display:flex;gap:6px"><button class="btn g sm" data-be="${b.id}">Edit</button><button class="btn d sm" data-bd="${b.id}">Delete</button></div></div>`
+   }).join(''):'<div class="empty">No batches yet. Create one, and weekly classes will be scheduled automatically.</div>'}</div>`;
   $('nb').onclick=()=>batchForm();
+  document.querySelectorAll('#bat [data-sh]').forEach(el => el.onclick = () => showStudentHistory(el.dataset.sh));
   document.querySelectorAll('[data-be]').forEach(x=>x.onclick=()=>batchForm(x.dataset.be));
   document.querySelectorAll('[data-bd]').forEach(x=>x.onclick=()=>confirmBox('Delete this batch? Already scheduled classes stay.',()=>{S.batches=S.batches.filter(b=>b.id!==x.dataset.bd);save();close();render()}));
 }

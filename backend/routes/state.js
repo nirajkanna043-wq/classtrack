@@ -4,7 +4,7 @@ const db = require('../db');
 
 router.get('/', (req, res) => {
   const students = db.prepare('SELECT id, name, quota FROM students ORDER BY rowid').all();
-  const batches = db.prepare('SELECT id, name FROM batches ORDER BY rowid').all().map(b => ({
+  const batches = db.prepare('SELECT * FROM batches ORDER BY rowid').all().map(b => ({
     ...b,
     sids: db.prepare('SELECT student_id FROM batch_students WHERE batch_id = ?').all(b.id).map(r => r.student_id),
   }));

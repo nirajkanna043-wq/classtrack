@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS students (
   id TEXT PRIMARY KEY, name TEXT NOT NULL, quota INTEGER NOT NULL DEFAULT 8
 );
 CREATE TABLE IF NOT EXISTS batches (
-  id TEXT PRIMARY KEY, name TEXT NOT NULL
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, day INTEGER, time TEXT
 );
 CREATE TABLE IF NOT EXISTS batch_students (
   batch_id TEXT NOT NULL REFERENCES batches(id) ON DELETE CASCADE,
@@ -67,5 +67,8 @@ CREATE TABLE IF NOT EXISTS attendance (
   PRIMARY KEY (class_id, student_id)
 );
 `);
+
+try { db.exec('ALTER TABLE batches ADD COLUMN day INTEGER'); } catch(e){}
+try { db.exec('ALTER TABLE batches ADD COLUMN time TEXT'); } catch(e){}
 
 module.exports = db;
