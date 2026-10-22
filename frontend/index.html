@@ -87,10 +87,25 @@ label{font-size:13px;color:var(--mu);display:block;margin:10px 0 4px}
 (function(){
 const KEY='classtrack_v1';
 let S={students:[],batches:[],classes:[],att:{}};
+let hasBackend=true;
 /* ---- Backend sync: diffs state and calls the REST API ---- */
 const api=(m,u,b)=>fetch('/api'+u,{method:m,headers:{'Content-Type':'application/json'},body:b?JSON.stringify(b):undefined}).then(r=>{if(!r.ok&&r.status!==404)throw new Error(r.status);return r});
 const j=x=>JSON.stringify(x);let snap=j(S);
-async function loadState(){try{const r=await fetch('/api/state');if(!r.ok)throw 0;S=await r.json()}catch(e){toast('Cannot reach the server – is it running?')}snap=j(S)}
+async function loadState(){
+  try{
+    const r=await fetch('/api/state');
+    if(!r.ok)throw 0;
+    S=await r.json();
+    hasBackend=true;
+  }catch(e){
+    hasBackend=false;
+    try{
+      const local=localStorage.getItem(KEY);
+      if(local)S=JSON.parse(local);
+    }catch(err){}
+  }
+  snap=j(S);
+}
 async function sync(){
  const old=JSON.parse(snap),cur=JSON.parse(j(S));snap=j(cur);
  for(const c of ['students','batches','classes']){
@@ -100,7 +115,10 @@ async function sync(){
  for(const cid in cur.att)for(const sid in cur.att[cid]){const v=cur.att[cid][sid];if(!old.att[cid]||old.att[cid][sid]!==v)await api('PUT','/attendance',{classId:cid,studentId:sid,status:v})}
  for(const cid in old.att)for(const sid in old.att[cid])if(!cur.att[cid]||!cur.att[cid][sid])await api('DELETE','/attendance/'+cid+'/'+sid)}
 let q=Promise.resolve();
-const save=()=>{q=q.then(sync).catch(()=>toast('Save failed – is the server running?'))};
+const save=()=>{
+  try{localStorage.setItem(KEY,j(S))}catch(e){}
+  if(hasBackend){q=q.then(sync).catch(()=>toast('Save failed – is the server running?'))}
+};
 const $=id=>document.getElementById(id);
 const uid=()=>Math.random().toString(36).slice(2,9);
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
