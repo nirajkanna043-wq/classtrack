@@ -75,9 +75,9 @@ label{font-size:13px;color:var(--mu);display:block;margin:10px 0 4px}
     <button data-v="stu">Students</button>
     <button data-v="bat">Batches</button>
     <button data-v="done">Completed<span class="badge" id="bd" hidden></span></button>
-    <button class="nav-sync-btn" id="syncNav" title="Default Automatic Cloud Sync across all your devices">
+    <button class="nav-sync-btn" id="syncNav" title="Automatic Cloud Sync across all your devices">
       <span id="syncStatusDot">🟢</span>
-      <span id="syncStatusText">Cloud Synced</span>
+      <span id="syncStatusText">Auto-Synced</span>
     </button>
   </nav>
 </div></header>
@@ -119,52 +119,47 @@ function updateSyncBadge(status){
     txt.textContent = 'Syncing...';
   } else if (status === 'online') {
     dot.textContent = '🟢';
-    txt.textContent = 'Cloud Synced';
+    txt.textContent = 'Auto-Synced';
   } else if (status === 'offline') {
     dot.textContent = '📱';
-    txt.textContent = 'Local (Offline)';
+    txt.textContent = 'Offline';
   } else if (status === 'error') {
     dot.textContent = '⚠️';
-    txt.textContent = 'Sync Error';
+    txt.textContent = 'Sync Issue';
   }
-}
-
-// Check for direct sync hash in URL (for instant 1-tap transfer)
-function checkUrlHashSync(){
-  if (window.location.hash && window.location.hash.startsWith('#sync=')) {
-    try {
-      const raw = decodeURIComponent(window.location.hash.slice(6));
-      const incoming = JSON.parse(raw);
-      if (incoming && Array.isArray(incoming.students)) {
-        S = {
-          students: incoming.students || [],
-          batches: incoming.batches || [],
-          classes: incoming.classes || [],
-          att: incoming.att || {}
-        };
-        save();
-        toast('🎉 Synced from link! Loaded ' + S.students.length + ' students and ' + S.batches.length + ' batches.');
-        try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch(e){}
-        return true;
-      }
-    } catch(err) {
-      console.error('Error importing sync hash:', err);
-    }
-  }
-  return false;
 }
 
 const saveLocal = () => {
   try { localStorage.setItem(KEY, j(S)); } catch(e){}
 };
 
+// Immediate Cloud Push
+async function pushToCloudNow(){
+  try {
+    updateSyncBadge('syncing');
+    const r = await fetch(DEFAULT_CLOUD_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'classtrack_nirajkanna043_db',
+        data: S
+      })
+    });
+    if (r.ok) {
+      updateSyncBadge('online');
+      return true;
+    } else {
+      updateSyncBadge('error');
+      return false;
+    }
+  } catch(e) {
+    updateSyncBadge('offline');
+    return false;
+  }
+}
+
 // Automatic Default Cloud Loading
 async function loadState(isSilent = false){
-  if (checkUrlHashSync()) {
-    snap = j(S);
-    return;
-  }
-
   // 1. If user set a custom backend URL (like Render), try it first
   if (serverUrl) {
     try {
@@ -189,9 +184,9 @@ async function loadState(isSilent = false){
     if (local) localData = JSON.parse(local);
   } catch(err){}
 
-  // 2. Default Automatic Cloud Sync: fetch from cloud database
+  // 2. Default Automatic Cloud Sync: fetch from cloud database (cache-busted for iOS Safari)
   try {
-    const r = await fetch(DEFAULT_CLOUD_URL);
+    const r = await fetch(DEFAULT_CLOUD_URL + '?_t=' + Date.now(), { cache: 'no-store' });
     if (r.ok) {
       const res = await r.json();
       if (res && res.data && Array.isArray(res.data.students)) {
@@ -213,35 +208,19 @@ async function loadState(isSilent = false){
           };
           saveLocal();
           snap = j(S);
-          save(); // Push to cloud database
+          await pushToCloudNow();
           updateSyncBadge('online');
           return;
         }
 
-        // Auto-merge: If both have data, merge local items into cloud items by ID so no device loses data
-        if (localData && (localData.students?.length > 0 || localData.batches?.length > 0)) {
-          const sMap = new Map();
-          (cloudData.students || []).forEach(s => sMap.set(s.id, s));
-          (localData.students || []).forEach(s => { if (!sMap.has(s.id)) sMap.set(s.id, s); });
-          cloudData.students = Array.from(sMap.values());
-
-          const bMap = new Map();
-          (cloudData.batches || []).forEach(b => bMap.set(b.id, b));
-          (localData.batches || []).forEach(b => { if (!bMap.has(b.id)) bMap.set(b.id, b); });
-          cloudData.batches = Array.from(bMap.values());
-
-          const cMap = new Map();
-          (cloudData.classes || []).forEach(c => cMap.set(c.id, c));
-          (localData.classes || []).forEach(c => { if (!cMap.has(c.id)) cMap.set(c.id, c); });
-          cloudData.classes = Array.from(cMap.values());
-
-          cloudData.att = Object.assign({}, localData.att || {}, cloudData.att || {});
-        }
-
+        const prevSnap = j(S);
         S = cloudData;
         saveLocal();
         snap = j(S);
         updateSyncBadge('online');
+        if (isSilent && prevSnap !== snap) {
+          render();
+        }
         return;
       }
     }
@@ -288,11 +267,11 @@ async function syncCustomBackend(){
   }
 }
 
-// Automatic Default Cloud Saving (with 350ms debounce)
+// Automatic Default Cloud Saving (with 300ms debounce)
 let cloudSaveTimer = null;
 let q = Promise.resolve();
 
-const save = () => {
+const save = (immediate = false) => {
   saveLocal();
   updateSyncBadge('syncing');
 
@@ -301,45 +280,51 @@ const save = () => {
   }
 
   clearTimeout(cloudSaveTimer);
-  cloudSaveTimer = setTimeout(() => {
-    fetch(DEFAULT_CLOUD_URL, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: 'classtrack_nirajkanna043_db',
-        data: S
-      })
-    })
-    .then(r => {
-      if (r.ok) updateSyncBadge('online');
-      else updateSyncBadge('error');
-    })
-    .catch(() => updateSyncBadge('offline'));
-  }, 350);
+  if (immediate) {
+    pushToCloudNow();
+  } else {
+    cloudSaveTimer = setTimeout(pushToCloudNow, 300);
+  }
 };
 
-// Automatic real-time background sync when user returns to tab (e.g. iPad unlocked or browser focused)
+// Automatic real-time background sync:
+// 1. When switching back to tab (e.g. iPad unlocked or browser focused)
 window.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
     const ov = document.getElementById('ov');
     if (!ov || !ov.classList.contains('on')) {
-      loadState(true).then(() => render());
+      loadState(true);
     }
   }
 });
 window.addEventListener('focus', () => {
   const ov = document.getElementById('ov');
   if (!ov || !ov.classList.contains('on')) {
-    loadState(true).then(() => render());
+    loadState(true);
   }
 });
-// Periodic background refresh every 30 seconds
+// 2. Periodic background check every 6 seconds so iPad sees laptop changes almost immediately
 setInterval(() => {
   const ov = document.getElementById('ov');
   if (!ov || !ov.classList.contains('on')) {
-    loadState(true).then(() => render());
+    loadState(true);
   }
-}, 30000);
+}, 6000);
+
+// Flush any pending save before leaving
+window.addEventListener('beforeunload', () => {
+  if (cloudSaveTimer) {
+    clearTimeout(cloudSaveTimer);
+    try {
+      fetch(DEFAULT_CLOUD_URL, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'classtrack_nirajkanna043_db', data: S }),
+        keepalive: true
+      });
+    } catch(e){}
+  }
+});
 
 const $ = id => document.getElementById(id);
 const uid = () => Math.random().toString(36).slice(2,9);
@@ -373,97 +358,39 @@ function confirmBox(msg, fn){
 }
 $('ov').addEventListener('click', e => { if (e.target.id === 'ov') close(); });
 
-/* ---------- Sync & iPad Transfer Modal ---------- */
-function generateIpadSyncUrl(){
-  const base = window.location.origin + window.location.pathname;
-  return base + '#sync=' + encodeURIComponent(j(S));
-}
-
+/* ---------- Cloud Sync Status & Backup Modal (No QR code needed) ---------- */
 function openSyncModal(){
-  const syncUrl = generateIpadSyncUrl();
-  const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(syncUrl);
-
-  open('<h2>Cloud Sync Status & Device Transfer</h2>' +
-    '<div style="background:var(--grb);color:var(--gr);padding:10px 14px;border-radius:10px;font-size:13px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px">' +
-      '<span>🟢</span>' +
-      '<span>Default Automatic Cloud Sync is ACTIVE! Any device visiting this website will automatically see your latest students & batches.</span>' +
-    '</div>' +
-
-    '<!-- Method 1: Instant iPad Scan/Link -->' +
-    '<div style="background:var(--bg);padding:14px;border-radius:12px;margin-bottom:14px;border:1px solid var(--bd)">' +
-      '<div style="display:flex;justify-content:space-between;align-items:center">' +
-        '<h3 style="margin:0">Direct iPad Sync Link / QR Code</h3>' +
-        '<span class="pill p-g">Instant</span>' +
-      '</div>' +
-      '<p class="mu" style="margin:6px 0 12px;font-size:13px">You can also scan or copy this direct link to open with all data pre-loaded:</p>' +
-      
-      '<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">' +
-        '<div style="text-align:center;background:#fff;padding:8px;border-radius:10px;border:1px solid var(--bd)">' +
-          '<img src="' + qrUrl + '" width="140" height="140" alt="Scan with iPad" style="display:block">' +
-          '<span style="font-size:11px;color:#333;font-weight:600;display:block;margin-top:4px">Scan with iPad Camera</span>' +
-        '</div>' +
-        '<div style="flex:1;min-width:180px">' +
-          '<button class="btn sm" id="copySyncLink" style="width:100%;margin-bottom:8px">📋 Copy Direct Sync Link</button>' +
-          '<button class="btn g sm" id="shareSyncLink" style="width:100%;margin-bottom:8px">📤 Share Link (AirDrop / WhatsApp)</button>' +
-          '<div class="mu" style="font-size:12px">Current Data: <b>' + S.students.length + '</b> students, <b>' + S.batches.length + '</b> batches, <b>' + S.classes.length + '</b> classes.</div>' +
-        '</div>' +
+  open('<h2>Automatic Cloud Sync</h2>' +
+    '<div style="background:var(--grb);color:var(--gr);padding:12px 16px;border-radius:12px;font-size:14px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:10px">' +
+      '<span style="font-size:22px">🟢</span>' +
+      '<div>' +
+        '<div>Cloud Sync is Active & 100% Automatic</div>' +
+        '<div style="font-size:12px;font-weight:normal;color:var(--tx);margin-top:2px">Any students, batches, or attendance added on your laptop, iPad, or mobile automatically sync with zero setup.</div>' +
       '</div>' +
     '</div>' +
 
-    '<!-- Method 2: Backup & Restore -->' +
-    '<div style="background:var(--bg);padding:14px;border-radius:12px;border:1px solid var(--bd)">' +
-      '<h3 style="margin:0 0 6px">Backup & File Restore</h3>' +
+    '<div style="background:var(--bg);padding:14px;border-radius:12px;border:1px solid var(--bd);margin-bottom:14px">' +
+      '<div style="font-size:13px;margin-bottom:10px"><b>Current Cloud Data:</b> ' + S.students.length + ' students · ' + S.batches.length + ' batches · ' + S.classes.length + ' classes</div>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+        '<button class="btn sm" id="forceCloudSyncBtn">🔄 Sync / Refresh Now</button>' +
         '<button class="btn g sm" id="expDownload">📥 Download Backup (.json)</button>' +
-        '<button class="btn g sm" id="impFileBtn">📤 Restore from File</button>' +
-        '<button class="btn g sm" id="forceCloudSyncBtn">🔄 Force Cloud Refresh</button>' +
+        '<button class="btn g sm" id="impFileBtn">📤 Restore from Backup</button>' +
       '</div>' +
     '</div>' +
 
-    '<div style="display:flex;justify-content:flex-end;margin-top:16px">' +
-      '<button class="btn" id="syncClose">Done</button>' +
+    '<div style="display:flex;justify-content:flex-end">' +
+      '<button class="btn g" id="syncClose">Done</button>' +
     '</div>');
 
   $('syncClose').onclick = close;
 
   $('forceCloudSyncBtn').onclick = () => {
-    toast('Refreshing from cloud database...');
-    loadState().then(() => {
+    toast('Syncing with cloud database...');
+    loadState(false).then(() => {
       render();
-      toast('Refreshed! Loaded ' + S.students.length + ' students.');
+      toast('Synced! Loaded ' + S.students.length + ' students and ' + S.batches.length + ' batches.');
       close();
     });
-  };
-
-  $('copySyncLink').onclick = () => {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(syncUrl).then(() => {
-        toast('Copied sync link! Open or send it to your iPad.');
-      }).catch(() => fallbackPromptCopy(syncUrl));
-    } else {
-      fallbackPromptCopy(syncUrl);
-    }
-  };
-
-  function fallbackPromptCopy(text){
-    open('<h2>iPad Sync Link</h2><p class="mu">Copy this link and open it in Safari on your iPad:</p>' +
-      '<textarea rows="5" style="width:100%;font:11px monospace;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:8px" id="taCopy">' + esc(text) + '</textarea>' +
-      '<div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn" id="doneCopy">Back</button></div>');
-    $('taCopy').focus();
-    $('taCopy').select();
-    $('doneCopy').onclick = openSyncModal;
-  }
-
-  $('shareSyncLink').onclick = () => {
-    if (navigator.share) {
-      navigator.share({
-        title: 'ClassTrack Sync',
-        text: 'Sync ClassTrack data to iPad',
-        url: syncUrl
-      }).catch(() => {});
-    } else {
-      $('copySyncLink').click();
-    }
   };
 
   $('expDownload').onclick = () => {
@@ -495,7 +422,7 @@ function openSyncModal(){
               classes: parsed.classes || [],
               att: parsed.att || {}
             };
-            save();
+            save(true);
             render();
             close();
             toast('Imported backup! Restored ' + S.students.length + ' students.');
@@ -957,9 +884,23 @@ document.querySelectorAll('nav button[data-v]').forEach(b=>b.onclick=()=>{
   view=b.dataset.v;
   document.querySelectorAll('nav button[data-v]').forEach(x=>x.classList.toggle('on',x===b));
   render();
+  loadState(true);
 });
 
 $('syncNav').onclick = openSyncModal;
+
+// Instant initial render from local cache to prevent empty screen on load
+try {
+  const local = localStorage.getItem(KEY);
+  if (local) {
+    const parsed = JSON.parse(local);
+    if (parsed && Array.isArray(parsed.students)) {
+      S = parsed;
+      snap = j(S);
+    }
+  }
+} catch(e){}
+render();
 
 loadState().then(render);
 setInterval(()=>{const n=S.students.filter(s=>stats(s).done).length;$('bd').hidden=!n;$('bd').textContent=n},60000);
