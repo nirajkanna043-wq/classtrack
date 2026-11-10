@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>ClassTrack – Online Class Scheduler</title>
+<title>ClassTrack – Online Class Scheduler & Attendance</title>
 <style>
 :root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
 --bg:#f5f6fa;--card:#fff;--tx:#1b1f2a;--mu:#6b7280;--bd:#e5e7eb;--pr:#4f46e5;--prt:#fff;--gr:#16a34a;--grb:#dcfce7;--rd:#dc2626;--rdb:#fee2e2;--am:#d97706;--amb:#fef3c7;--sh:0 1px 3px rgba(0,0,0,.08)}
@@ -13,11 +13,11 @@
 body{background:var(--bg);color:var(--tx);font:15px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
 header{background:var(--card);border-bottom:1px solid var(--bd);position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
 .in{max-width:1100px;margin:0 auto;padding:0 16px}
-.top{display:flex;align-items:center;gap:20px;height:60px;flex-wrap:wrap}
+.top{display:flex;align-items:center;gap:12px;height:60px;flex-wrap:wrap}
 .logo{font-weight:700;font-size:18px;display:flex;gap:8px;align-items:center}
 .logo i{width:28px;height:28px;border-radius:8px;background:var(--pr);display:inline-block}
-nav{display:flex;gap:4px;margin-left:auto}
-nav button{background:none;border:0;color:var(--mu);padding:8px 14px;border-radius:8px;font:inherit;font-weight:500;cursor:pointer;position:relative}
+nav{display:flex;gap:4px;margin-left:auto;align-items:center;flex-wrap:wrap}
+nav button{background:none;border:0;color:var(--mu);padding:8px 12px;border-radius:8px;font:inherit;font-weight:500;cursor:pointer;position:relative}
 nav button.on{background:var(--bg);color:var(--tx)}
 .badge{background:var(--rd);color:#fff;border-radius:99px;font-size:11px;padding:1px 7px;margin-left:6px}
 main{padding:20px 0 40px}
@@ -48,20 +48,23 @@ label{font-size:13px;color:var(--mu);display:block;margin:10px 0 4px}
 .bar{height:6px;background:var(--bd);border-radius:9px;overflow:hidden;margin-top:6px}.bar i{display:block;height:100%;background:var(--pr)}
 .ov{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:center;justify-content:center;padding:16px;z-index:20}
 .ov.on{display:flex}
-.md{background:var(--card);border-radius:16px;width:100%;max-width:520px;max-height:88vh;overflow:auto;padding:22px;border:1px solid var(--bd)}
+.md{background:var(--card);border-radius:16px;width:100%;max-width:540px;max-height:88vh;overflow:auto;padding:22px;border:1px solid var(--bd)}
 .chk{display:flex;align-items:center;gap:8px;padding:6px 0}.chk input{width:auto}
 .seg{display:flex;gap:6px}
 .seg button{border:1px solid var(--bd);background:var(--bg);color:var(--mu);border-radius:8px;padding:5px 12px;font:inherit;cursor:pointer;font-weight:600}
 .seg button.p.on{background:var(--grb);color:var(--gr);border-color:var(--gr)}
 .seg button.a.on{background:var(--rdb);color:var(--rd);border-color:var(--rd)}
+.seg button.r.on{background:var(--amb);color:var(--am);border-color:var(--am)}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .chip{padding:8px 12px;border-radius:10px;font-size:13px;font-weight:600;text-align:center;border:1px solid transparent}
-.seg button.r.on{background:var(--amb);color:var(--am);border-color:var(--am)}
 .chip.y{background:var(--amb);color:var(--am);border-color:var(--am)}
-.chip.g{background:var(--grb);color:var(--gr);border-color:var(--gr)}.chip.r{background:var(--rdb);color:var(--rd);border-color:var(--rd)}.chip.n{background:var(--bg);color:var(--mu);border-color:var(--bd)}
+.chip.g{background:var(--grb);color:var(--gr);border-color:var(--gr)}.chip.r{background:var(--rdb);color:var(--rd)}.chip.n{background:var(--bg);color:var(--mu);border-color:var(--bd)}
 .chip span{display:block;font-weight:400;font-size:11px}
 .empty{text-align:center;color:var(--mu);padding:24px 0}
-.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:10px 16px;border-radius:10px;z-index:30;display:none;font-size:14px}
+.toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:10px 16px;border-radius:10px;z-index:30;display:none;font-size:14px;max-width:90%;box-shadow:0 4px 12px rgba(0,0,0,.15);text-align:center}
+.day-btn{min-width:44px;text-align:center;transition:all .15s}
+.day-btn.active{background:var(--pr);color:var(--prt);border-color:var(--pr)}
+.nav-sync-btn{border:1px solid var(--bd);background:var(--bg);color:var(--tx);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 </style>
 </head>
 <body>
@@ -72,6 +75,10 @@ label{font-size:13px;color:var(--mu);display:block;margin:10px 0 4px}
     <button data-v="stu">Students</button>
     <button data-v="bat">Batches</button>
     <button data-v="done">Completed<span class="badge" id="bd" hidden></span></button>
+    <button class="nav-sync-btn" id="syncNav" title="Sync data between iPad, laptop, and phone">
+      <span>📱 Sync to iPad</span>
+      <span class="pill p-n" id="netPill" style="font-size:10px;padding:1px 6px">Offline</span>
+    </button>
   </nav>
 </div></header>
 <main class="in">
@@ -86,80 +93,390 @@ label{font-size:13px;color:var(--mu);display:block;margin:10px 0 4px}
 <script>
 (function(){
 const KEY='classtrack_v1';
-let S={students:[],batches:[],classes:[],att:{}};
-let hasBackend=true;
-/* ---- Backend sync: diffs state and calls the REST API ---- */
-const api=(m,u,b)=>fetch('/api'+u,{method:m,headers:{'Content-Type':'application/json'},body:b?JSON.stringify(b):undefined}).then(r=>{if(!r.ok&&r.status!==404)throw new Error(r.status);return r});
-const j=x=>JSON.stringify(x);let snap=j(S);
-async function loadState(){
-  try{
-    const r=await fetch('/api/state');
-    if(!r.ok)throw 0;
-    S=await r.json();
-    hasBackend=true;
-  }catch(e){
-    hasBackend=false;
-    try{
-      const local=localStorage.getItem(KEY);
-      if(local)S=JSON.parse(local);
-    }catch(err){}
-  }
-  snap=j(S);
-}
-async function sync(){
- const old=JSON.parse(snap),cur=JSON.parse(j(S));snap=j(cur);
- for(const c of ['students','batches','classes']){
-  const o={},n={};old[c].forEach(x=>o[x.id]=x);cur[c].forEach(x=>n[x.id]=x);
-  for(const x of cur[c]){if(!o[x.id])await api('POST','/'+c,x);else if(j(o[x.id])!==j(x))await api('PUT','/'+c+'/'+x.id,x)}
-  for(const id in o)if(!n[id])await api('DELETE','/'+c+'/'+id)}
- for(const cid in cur.att)for(const sid in cur.att[cid]){const v=cur.att[cid][sid];if(!old.att[cid]||old.att[cid][sid]!==v)await api('PUT','/attendance',{classId:cid,studentId:sid,status:v})}
- for(const cid in old.att)for(const sid in old.att[cid])if(!cur.att[cid]||!cur.att[cid][sid])await api('DELETE','/attendance/'+cid+'/'+sid)}
-let q=Promise.resolve();
-const save=()=>{
-  try{localStorage.setItem(KEY,j(S))}catch(e){}
-  if(hasBackend){q=q.then(sync).catch(()=>toast('Save failed – is the server running?'))}
-};
-const $=id=>document.getElementById(id);
-const uid=()=>Math.random().toString(36).slice(2,9);
-const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const pad=n=>String(n).padStart(2,'0');
-const ymd=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
-const today=ymd(new Date());
-let view='cal',cur=new Date(),sel=today;
-cur.setDate(1);
-const fmt=d=>new Date(d+'T00:00').toLocaleDateString(undefined,{weekday:'short',day:'numeric',month:'short',year:'numeric'});
-const stu=id=>S.students.find(s=>s.id===id);
-const bn=c=>{const b=S.batches.find(x=>x.id===c.bid);return b?esc(b.name)+' · ':''};
-const toast=m=>{const t=$('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',2800)};
-const isOver=(c,sid)=>!!(S.att[c.id]&&S.att[c.id][sid])||new Date(c.date+'T'+(c.time||'00:00')).getTime()+36e5<Date.now();
-const scheduled=sid=>S.classes.filter(c=>c.sids.includes(sid)).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
-function stats(s){const l=scheduled(s.id);const over=l.filter(c=>isOver(c,s.id));
-  return{list:l,over:over.length,total:l.length,done:s.quota>0&&l.length>=s.quota&&over.length===l.length}}
+const SERVER_KEY='classtrack_server_url';
+const PANTRY_KEY='classtrack_pantry_id';
+const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
-function open(html){$('md').innerHTML=html;$('ov').classList.add('on')}
-function close(){$('ov').classList.remove('on')}
-function confirmBox(msg,fn){open(`<h2>Please confirm</h2><p>${msg}</p><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn g" id="cn0">Cancel</button><button class="btn d" id="cy0">Yes, continue</button></div>`);$('cn0').onclick=close;$('cy0').onclick=fn}
-$('ov').addEventListener('click',e=>{if(e.target.id==='ov')close()});
+let S={students:[],batches:[],classes:[],att:{}};
+let serverUrl = localStorage.getItem(SERVER_KEY) || '';
+let pantryId = localStorage.getItem(PANTRY_KEY) || '';
+let hasBackend = false;
+
+const getApiBase = () => (serverUrl ? serverUrl.replace(/\/$/, '') : '') + '/api';
+
+const api = (m, u, b) => fetch(getApiBase() + u, {
+  method: m,
+  headers: { 'Content-Type': 'application/json' },
+  body: b ? JSON.stringify(b) : undefined
+}).then(r => {
+  if (!r.ok && r.status !== 404) throw new Error(r.status);
+  return r;
+});
+
+const j = x => JSON.stringify(x);
+let snap = j(S);
+
+function updateNetBadge(){
+  const pill = document.getElementById('netPill');
+  if (!pill) return;
+  if (hasBackend) {
+    pill.className = 'pill p-g';
+    pill.textContent = 'Cloud Sync';
+  } else if (pantryId) {
+    pill.className = 'pill p-a';
+    pill.textContent = 'Pantry Sync';
+  } else {
+    pill.className = 'pill p-n';
+    pill.textContent = 'Local (Tap Sync)';
+  }
+}
+
+// Check for direct sync hash in URL (transferred from laptop to iPad)
+function checkUrlHashSync(){
+  if (window.location.hash && window.location.hash.startsWith('#sync=')) {
+    try {
+      const raw = decodeURIComponent(window.location.hash.slice(6));
+      const incoming = JSON.parse(raw);
+      if (incoming && Array.isArray(incoming.students)) {
+        S = {
+          students: incoming.students || [],
+          batches: incoming.batches || [],
+          classes: incoming.classes || [],
+          att: incoming.att || {}
+        };
+        save();
+        toast('🎉 Synced from your other device! Loaded ' + S.students.length + ' students and ' + S.batches.length + ' batches.');
+        try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch(e){}
+        return true;
+      }
+    } catch(err) {
+      console.error('Error importing sync hash:', err);
+    }
+  }
+  return false;
+}
+
+async function loadState(){
+  // 1. If URL sync hash is provided, it takes priority
+  if (checkUrlHashSync()) {
+    snap = j(S);
+    return;
+  }
+
+  // 2. Try REST API backend (e.g. Render cloud or localhost)
+  try {
+    const r = await fetch(getApiBase() + '/state');
+    if (!r.ok) throw 0;
+    S = await r.json();
+    hasBackend = true;
+    try { localStorage.setItem(KEY, j(S)); } catch(e){}
+    snap = j(S);
+    updateNetBadge();
+    return;
+  } catch(e) {
+    hasBackend = false;
+  }
+
+  // 3. Try Pantry cloud storage if pantryId is configured
+  if (pantryId) {
+    try {
+      const pr = await fetch('https://getpantry.cloud/apiv1/pantry/' + pantryId + '/basket/classtrack');
+      if (pr.ok) {
+        const cloudData = await pr.json();
+        if (cloudData && Array.isArray(cloudData.students)) {
+          S = cloudData;
+          try { localStorage.setItem(KEY, j(S)); } catch(e){}
+          snap = j(S);
+          updateNetBadge();
+          return;
+        }
+      }
+    } catch(err){}
+  }
+
+  // 4. Fallback to localStorage on this device
+  try {
+    const local = localStorage.getItem(KEY);
+    if (local) S = JSON.parse(local);
+  } catch(err){}
+  snap = j(S);
+  updateNetBadge();
+}
+
+async function syncBackend(){
+  if (!hasBackend) return;
+  const old = JSON.parse(snap), cur = JSON.parse(j(S));
+  snap = j(cur);
+  for (const c of ['students', 'batches', 'classes']) {
+    const o = {}, n = {};
+    old[c].forEach(x => o[x.id] = x);
+    cur[c].forEach(x => n[x.id] = x);
+    for (const x of cur[c]) {
+      if (!o[x.id]) await api('POST', '/' + c, x);
+      else if (j(o[x.id]) !== j(x)) await api('PUT', '/' + c + '/' + x.id, x);
+    }
+    for (const id in o) if (!n[id]) await api('DELETE', '/' + c + '/' + id);
+  }
+  for (const cid in cur.att) for (const sid in cur.att[cid]) {
+    const v = cur.att[cid][sid];
+    if (!old.att[cid] || old.att[cid][sid] !== v) await api('PUT', '/attendance', { classId: cid, studentId: sid, status: v });
+  }
+  for (const cid in old.att) for (const sid in old.att[cid]) {
+    if (!cur.att[cid] || !cur.att[cid][sid]) await api('DELETE', '/attendance/' + cid + '/' + sid);
+  }
+}
+
+async function syncPantry(){
+  if (!pantryId) return;
+  try {
+    await fetch('https://getpantry.cloud/apiv1/pantry/' + pantryId + '/basket/classtrack', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: j(S)
+    });
+  } catch(e){}
+}
+
+let q = Promise.resolve();
+const save = () => {
+  try { localStorage.setItem(KEY, j(S)); } catch(e){}
+  if (hasBackend) {
+    q = q.then(syncBackend).catch(() => toast('Cloud save failed – check backend status'));
+  }
+  if (pantryId) {
+    q = q.then(syncPantry);
+  }
+};
+
+const $ = id => document.getElementById(id);
+const uid = () => Math.random().toString(36).slice(2,9);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad = n => String(n).padStart(2,'0');
+const ymd = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const today = ymd(new Date());
+
+let view='cal', cur=new Date(), sel=today;
+cur.setDate(1);
+
+const fmt = d => new Date(d+'T00:00').toLocaleDateString(undefined, {weekday:'short', day:'numeric', month:'short', year:'numeric'});
+const stu = id => S.students.find(s => s.id === id);
+const bn = c => { const b = S.batches.find(x => x.id === c.bid); return b ? esc(b.name)+' · ' : ''; };
+const toast = m => { const t = $('toast'); t.textContent = m; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 3200); };
+const isOver = (c, sid) => !!(S.att[c.id] && S.att[c.id][sid]) || new Date(c.date + 'T' + (c.time || '00:00')).getTime() + 36e5 < Date.now();
+const scheduled = sid => S.classes.filter(c => c.sids.includes(sid)).sort((a,b) => (a.date + a.time).localeCompare(b.date + b.time));
+
+function stats(s){
+  const l = scheduled(s.id);
+  const over = l.filter(c => isOver(c, s.id));
+  return { list: l, over: over.length, total: l.length, done: s.quota > 0 && l.length >= s.quota && over.length === l.length };
+}
+
+function open(html){ $('md').innerHTML = html; $('ov').classList.add('on'); }
+function close(){ $('ov').classList.remove('on'); }
+function confirmBox(msg, fn){
+  open('<h2>Please confirm</h2><p>' + msg + '</p><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn g" id="cn0">Cancel</button><button class="btn d" id="cy0">Yes, continue</button></div>');
+  $('cn0').onclick = close;
+  $('cy0').onclick = fn;
+}
+$('ov').addEventListener('click', e => { if (e.target.id === 'ov') close(); });
+
+/* ---------- Sync & iPad Transfer Modal ---------- */
+function generateIpadSyncUrl(){
+  const base = window.location.origin + window.location.pathname;
+  return base + '#sync=' + encodeURIComponent(j(S));
+}
+
+function openSyncModal(){
+  const syncUrl = generateIpadSyncUrl();
+  const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(syncUrl);
+
+  open('<h2>Sync ClassTrack with iPad & Other Devices</h2>' +
+    '<p class="mu" style="margin-top:-6px">Access the exact same students, batches, and attendance across all your devices.</p>' +
+
+    '<!-- Method 1: Instant iPad Scan/Link -->' +
+    '<div style="background:var(--bg);padding:14px;border-radius:12px;margin-bottom:14px;border:1px solid var(--bd)">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center">' +
+        '<h3 style="margin:0">1. Instant Transfer to iPad (1-Tap Scan)</h3>' +
+        '<span class="pill p-g">Fastest</span>' +
+      '</div>' +
+      '<p class="mu" style="margin:6px 0 12px;font-size:13px">Point your iPad camera at this QR code, or copy the sync link to transfer everything immediately:</p>' +
+      
+      '<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">' +
+        '<div style="text-align:center;background:#fff;padding:8px;border-radius:10px;border:1px solid var(--bd)">' +
+          '<img src="' + qrUrl + '" width="140" height="140" alt="Scan with iPad" style="display:block">' +
+          '<span style="font-size:11px;color:#333;font-weight:600;display:block;margin-top:4px">Scan with iPad Camera</span>' +
+        '</div>' +
+        '<div style="flex:1;min-width:180px">' +
+          '<button class="btn sm" id="copySyncLink" style="width:100%;margin-bottom:8px">📋 Copy iPad Sync Link</button>' +
+          '<button class="btn g sm" id="shareSyncLink" style="width:100%;margin-bottom:8px">📤 Share Link (AirDrop / WhatsApp)</button>' +
+          '<div class="mu" style="font-size:12px">Current Data: <b>' + S.students.length + '</b> students, <b>' + S.batches.length + '</b> batches, <b>' + S.classes.length + '</b> classes.</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>' +
+
+    '<!-- Method 2: Cloud Sync 24/7 -->' +
+    '<div style="background:var(--bg);padding:14px;border-radius:12px;margin-bottom:14px;border:1px solid var(--bd)">' +
+      '<h3 style="margin:0">2. Automatic Cloud Backend (24/7 Real-Time Sync)</h3>' +
+      '<p class="mu" style="margin:6px 0 10px;font-size:13px">Connect a cloud server so all devices update automatically without scanning:</p>' +
+
+      '<label style="margin:4px 0">Backend URL</label>' +
+      '<input id="srvInput" placeholder="e.g. https://classtrack.onrender.com or http://172.16.145.159:3000" value="' + esc(serverUrl) + '">' +
+      
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0">' +
+        '<button type="button" class="btn g sm" id="useLocalNet" style="font-size:12px">Use Laptop Wi-Fi (172.16.145.159:3000)</button>' +
+        '<button type="button" class="btn g sm" id="useRenderInfo" style="font-size:12px">Deploy Free to Render</button>' +
+      '</div>' +
+
+      '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">' +
+        '<button class="btn g sm" id="srvClear">Reset</button>' +
+        '<button class="btn sm" id="srvSave">Connect & Sync</button>' +
+      '</div>' +
+    '</div>' +
+
+    '<!-- Method 3: Backup & Restore -->' +
+    '<div style="background:var(--bg);padding:14px;border-radius:12px;border:1px solid var(--bd)">' +
+      '<h3 style="margin:0 0 6px">3. Backup & File Restore</h3>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+        '<button class="btn g sm" id="expDownload">📥 Download Backup (.json)</button>' +
+        '<button class="btn g sm" id="impFileBtn">📤 Restore from File</button>' +
+      '</div>' +
+    '</div>' +
+
+    '<div style="display:flex;justify-content:flex-end;margin-top:16px">' +
+      '<button class="btn" id="syncClose">Done</button>' +
+    '</div>');
+
+  $('syncClose').onclick = close;
+
+  $('copySyncLink').onclick = () => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(syncUrl).then(() => {
+        toast('Copied sync link! Open or send it to your iPad.');
+      }).catch(() => fallbackPromptCopy(syncUrl));
+    } else {
+      fallbackPromptCopy(syncUrl);
+    }
+  };
+
+  function fallbackPromptCopy(text){
+    open('<h2>iPad Sync Link</h2><p class="mu">Copy this link and open it in Safari on your iPad:</p>' +
+      '<textarea rows="5" style="width:100%;font:11px monospace;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:8px;padding:8px" id="taCopy">' + esc(text) + '</textarea>' +
+      '<div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn" id="doneCopy">Back</button></div>');
+    $('taCopy').focus();
+    $('taCopy').select();
+    $('doneCopy').onclick = openSyncModal;
+  }
+
+  $('shareSyncLink').onclick = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: 'ClassTrack Sync',
+        text: 'Sync ClassTrack data to iPad',
+        url: syncUrl
+      }).catch(() => {});
+    } else {
+      $('copySyncLink').click();
+    }
+  };
+
+  $('useLocalNet').onclick = () => {
+    $('srvInput').value = 'http://172.16.145.159:3000';
+  };
+
+  $('useRenderInfo').onclick = () => {
+    window.open('https://render.com/deploy?repo=https://github.com/nirajkanna043-wq/classtrack', '_blank');
+    toast('Opening Render 1-click deployment in new tab...');
+  };
+
+  $('srvClear').onclick = () => {
+    serverUrl = '';
+    localStorage.removeItem(SERVER_KEY);
+    $('srvInput').value = '';
+    loadState().then(() => { render(); updateNetBadge(); openSyncModal(); toast('Reset to local browser storage.'); });
+  };
+
+  $('srvSave').onclick = () => {
+    const url = $('srvInput').value.trim();
+    serverUrl = url;
+    if (url) localStorage.setItem(SERVER_KEY, url);
+    else localStorage.removeItem(SERVER_KEY);
+    toast('Testing connection to backend...');
+    loadState().then(() => {
+      render();
+      updateNetBadge();
+      openSyncModal();
+      toast(hasBackend ? '🟢 Connected to backend server!' : '⚠️ Could not reach server. Check URL.');
+    });
+  };
+
+  $('expDownload').onclick = () => {
+    const blob = new Blob([j(S)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'classtrack_backup_' + today + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('Backup file downloaded.');
+  };
+
+  $('impFileBtn').onclick = () => {
+    const inp = document.createElement('input');
+    inp.type = 'file';
+    inp.accept = '.json';
+    inp.onchange = e => {
+      const file = e.target.files[0];
+      if (file) {
+        const r = new FileReader();
+        r.onload = ev => {
+          try {
+            const parsed = JSON.parse(ev.target.result);
+            if (!parsed || !Array.isArray(parsed.students)) throw new Error('Invalid format');
+            S = {
+              students: parsed.students || [],
+              batches: parsed.batches || [],
+              classes: parsed.classes || [],
+              att: parsed.att || {}
+            };
+            save();
+            render();
+            close();
+            toast('Imported backup! Restored ' + S.students.length + ' students.');
+          } catch(err) {
+            toast('Failed to import file: ' + err.message);
+          }
+        };
+        r.readAsText(file);
+      }
+    };
+    inp.click();
+  };
+}
 
 /* ---------- Calendar ---------- */
 function renderCal(){
-  const y=cur.getFullYear(),m=cur.getMonth();
-  const first=new Date(y,m,1).getDay(),dim=new Date(y,m+1,0).getDate();
+  const y=cur.getFullYear(), m=cur.getMonth();
+  const first=new Date(y,m,1).getDay(), dim=new Date(y,m+1,0).getDate();
   let cells='';
-  for(let i=0;i<first;i++)cells+='<div></div>';
+  for(let i=0;i<first;i++) cells+='<div></div>';
   for(let d=1;d<=dim;d++){
-    const k=y+'-'+pad(m+1)+'-'+pad(d),n=S.classes.filter(c=>c.date===k).length;
-    cells+=`<button class="day ${k===today?'t':''} ${k===sel?'s':''}" data-d="${k}"><b>${d}</b>${n?`<small>${n} class${n>1?'es':''}</small>`:'<span></span>'}</button>`}
+    const k=y+'-'+pad(m+1)+'-'+pad(d), n=S.classes.filter(c=>c.date===k).length;
+    cells+='<button class="day ' + (k===today?'t':'') + ' ' + (k===sel?'s':'') + '" data-d="' + k + '"><b>' + d + '</b>' + (n?'<small>' + n + ' class' + (n>1?'es':'') + '</small>':'<span></span>') + '</button>';
+  }
   const cl=S.classes.filter(c=>c.date===sel).sort((a,b)=>a.time.localeCompare(b.time));
-  $('cal').innerHTML=`<div class="grid">
-   <div class="card"><div class="cal-h"><h2 style="margin:0">${cur.toLocaleDateString(undefined,{month:'long',year:'numeric'})}</h2>
-    <div><button class="btn g sm" id="pv">‹</button><button class="btn g sm" id="tdy">Today</button><button class="btn g sm" id="nx">›</button></div></div>
-    <div class="dow">${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(x=>`<span>${x}</span>`).join('')}</div><div class="days">${cells}</div></div>
-   <div class="card"><div class="cal-h"><div style="display:block"><h2 style="margin:0">${fmt(sel)}</h2><span class="mu">${cl.length} scheduled</span></div><button class="btn sm" id="add">+ Class</button></div>
-    ${cl.length?cl.map(c=>{const p=Object.values(S.att[c.id]||{}).filter(v=>v==='p').length,mk=Object.keys(S.att[c.id]||{}).length;
-      return `<div class="item" data-c="${c.id}"><div><h3>${esc(c.name)}</h3><span class="mu">${bn(c)}${c.time} · ${c.sids.length} student${c.sids.length!==1?'s':''}</span></div>
-      <span class="pill ${mk?'p-g':'p-n'}">${mk?p+'/'+c.sids.length+' present':'Not marked'}</span></div>`}).join(''):'<div class="empty">No classes on this date.</div>'}
-   </div></div>`;
+  $('cal').innerHTML='<div class="grid">' +
+   '<div class="card"><div class="cal-h"><h2 style="margin:0">' + cur.toLocaleDateString(undefined,{month:'long',year:'numeric'}) + '</h2>' +
+    '<div><button class="btn g sm" id="pv">‹</button><button class="btn g sm" id="tdy">Today</button><button class="btn g sm" id="nx">›</button></div></div>' +
+    '<div class="dow">' + DAYS_SHORT.map(x=>'<span>'+x+'</span>').join('') + '</div><div class="days">' + cells + '</div></div>' +
+   '<div class="card"><div class="cal-h"><div style="display:block"><h2 style="margin:0">' + fmt(sel) + '</h2><span class="mu">' + cl.length + ' scheduled</span></div><button class="btn sm" id="add">+ Class</button></div>' +
+    (cl.length?cl.map(c=>{
+      const p=Object.values(S.att[c.id]||{}).filter(v=>v==='p').length, mk=Object.keys(S.att[c.id]||{}).length;
+      return '<div class="item" data-c="' + c.id + '"><div><h3>' + esc(c.name) + '</h3><span class="mu">' + bn(c) + c.time + ' · ' + c.sids.length + ' student' + (c.sids.length!==1?'s':'') + '</span></div>' +
+      '<span class="pill ' + (mk?'p-g':'p-n') + '">' + (mk?p+'/'+c.sids.length+' present':'Not marked') + '</span></div>';
+    }).join(''):'<div class="empty">No classes on this date.</div>') +
+   '</div></div>';
+
   $('pv').onclick=()=>{cur.setMonth(cur.getMonth()-1);renderCal()};
   $('nx').onclick=()=>{cur.setMonth(cur.getMonth()+1);renderCal()};
   $('tdy').onclick=()=>{cur=new Date();cur.setDate(1);sel=today;renderCal()};
@@ -170,37 +487,57 @@ function renderCal(){
 
 function classForm(){
   if(!S.batches.length){toast('Create a batch first (Batches tab).');return}
-  open(`<h2>Schedule online class</h2>
-   <label>Class name</label><input id="cn" placeholder="e.g. Maths – Algebra">
-   <div class="row"><div><label>Date</label><input id="cd" type="date" value="${sel}"></div><div><label>Time</label><input id="ct" type="time" value="10:00"></div></div>
-   <label>Repeat weekly (number of total sessions)</label><input id="cr" type="number" min="1" max="52" value="1">
-   <label>Batch</label><select id="cb">${S.batches.map(b=>`<option value="${b.id}">${esc(b.name)} (${b.sids.length} students)</option>`).join('')}</select>
-   <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn g" id="cx">Cancel</button><button class="btn" id="cs">Schedule</button></div>`);
+  open('<h2>Schedule Single Class</h2>' +
+   '<label>Class name</label><input id="cn" placeholder="e.g. Maths – Algebra">' +
+   '<div class="row"><div><label>Date</label><input id="cd" type="date" value="' + sel + '"></div><div><label>Time</label><input id="ct" type="time" value="10:00"></div></div>' +
+   '<label>Repeat weekly (number of total sessions)</label><input id="cr" type="number" min="1" max="52" value="1">' +
+   '<label>Batch</label><select id="cb">' + S.batches.map(b=>'<option value="' + b.id + '">' + esc(b.name) + ' (' + b.sids.length + ' students)</option>').join('') + '</select>' +
+   '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn g" id="cx">Cancel</button><button class="btn" id="cs">Schedule</button></div>');
   $('cx').onclick=close;
   $('cs').onclick=()=>{
-    const name=$('cn').value.trim(),date=$('cd').value,time=$('ct').value,rep=Math.max(1,+$('cr').value||1);
-    const bid=$('cb').value,bt=S.batches.find(x=>x.id===bid),ids=bt?bt.sids.filter(id=>stu(id)):[];
+    const name=$('cn').value.trim(), date=$('cd').value, time=$('ct').value, rep=Math.max(1,+$('cr').value||1);
+    const bid=$('cb').value, bt=S.batches.find(x=>x.id===bid), ids=bt?bt.sids.filter(id=>stu(id)):[];
     if(!name||!date||!time||!ids.length){toast('Fill name, date, time and pick a batch with students.');return}
-    let made=0,skipped=new Set();
+    let made=0, skipped=new Set();
     for(let r=0;r<rep;r++){
       const d=new Date(date+'T00:00');d.setDate(d.getDate()+7*r);
       const ok=ids.filter(id=>{const s=stu(id);if(scheduled(id).length<s.quota)return true;skipped.add(s.name);return false});
       if(ok.length){S.classes.push({id:uid(),name,date:ymd(d),time,bid,sids:ok});made++}
     }
     save();close();render();
-    toast(made?`Scheduled ${made} class${made>1?'es':''}.`+(skipped.size?` Quota reached: ${[...skipped].join(', ')}`:''):'No classes created – quota reached for selected students.');
+    toast(made?'Scheduled ' + made + ' class' + (made>1?'es':'') + '.' + (skipped.size?' Quota reached: ' + [...skipped].join(', '):''):'No classes created – quota reached for selected students.');
   };
 }
 
-const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-function getNextDateForDay(dayIndex) {
-  const d = new Date();
-  d.setHours(0,0,0,0);
-  const diff = (dayIndex - d.getDay() + 7) % 7;
-  d.setDate(d.getDate() + diff);
+/* Helper to get upcoming date for a day index */
+function getEarliestUpcomingDate(selectedDays, fromDateStr = today) {
+  if (!selectedDays || !selectedDays.length) return fromDateStr;
+  const now = new Date(fromDateStr + 'T00:00:00');
+  let minDiff = 8;
+  for (const dayIdx of selectedDays) {
+    let diff = dayIdx - now.getDay();
+    if (diff < 0) diff += 7;
+    if (diff < minDiff) minDiff = diff;
+  }
+  const d = new Date(now);
+  d.setDate(d.getDate() + minDiff);
   return ymd(d);
 }
 
+function getDatesForSelectedDays(selectedDays, startDateStr, weeksCount) {
+  const cur = new Date(startDateStr + 'T00:00:00');
+  const dates = [];
+  const totalDays = weeksCount * 7;
+  for (let i = 0; i < totalDays; i++) {
+    if (selectedDays.includes(cur.getDay())) {
+      dates.push(ymd(cur));
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+  return dates;
+}
+
+/* ---------- Student Attendance History Modal ---------- */
 function showStudentHistory(sid){
   const s = stu(sid);
   if (!s) return;
@@ -210,53 +547,56 @@ function showStudentHistory(sid){
   const rc = list.filter(c => S.att[c.id] && S.att[c.id][s.id] === 'r').length;
   const un = list.filter(c => !S.att[c.id] || !S.att[c.id][s.id]).length;
 
-  open(`<h2>${esc(s.name)}</h2>
-    <p class="mu" style="margin-top:-6px">Attendance History · ${list.length} of ${s.quota} classes scheduled</p>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
-      <span class="pill p-g">${pr} Present</span>
-      <span class="pill p-r">${ab} Absent</span>
-      <span class="pill p-a">${rc} Record</span>
-      <span class="pill p-n">${un} Upcoming / Unmarked</span>
-    </div>
-    ${list.length ? `
-      <div style="max-height:55vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px">
-        ${list.map(c => {
+  open('<h2>' + esc(s.name) + '</h2>' +
+    '<p class="mu" style="margin-top:-6px">Attendance History · ' + list.length + ' of ' + s.quota + ' classes scheduled</p>' +
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">' +
+      '<span class="pill p-g">' + pr + ' Present</span>' +
+      '<span class="pill p-r">' + ab + ' Absent</span>' +
+      '<span class="pill p-a">' + rc + ' Record</span>' +
+      '<span class="pill p-n">' + un + ' Upcoming / Unmarked</span>' +
+    '</div>' +
+    (list.length ? 
+      '<div style="max-height:55vh;overflow-y:auto;display:flex;flex-direction:column;gap:8px">' +
+        list.map(c => {
           const v = S.att[c.id] && S.att[c.id][s.id];
           const badge = v === 'p' ? '<span class="pill p-g">Present</span>'
                       : v === 'a' ? '<span class="pill p-r">Absent</span>'
                       : v === 'r' ? '<span class="pill p-a">Record</span>'
                       : '<span class="pill p-n">Upcoming</span>';
-          return `<div class="item nc" style="margin-bottom:0">
-            <div>
-              <h3>${esc(c.name)}</h3>
-              <span class="mu">${bn(c)}${fmt(c.date)} · ${c.time}</span>
-            </div>
-            <div>${badge}</div>
-          </div>`;
-        }).join('')}
-      </div>`
+          return '<div class="item nc" style="margin-bottom:0">' +
+            '<div>' +
+              '<h3>' + esc(c.name) + '</h3>' +
+              '<span class="mu">' + bn(c) + fmt(c.date) + ' · ' + c.time + '</span>' +
+            '</div>' +
+            '<div>' + badge + '</div>' +
+          '</div>';
+        }).join('') +
+      '</div>'
       : '<div class="empty">No classes scheduled for this student yet.</div>'
-    }
-    <div style="display:flex;justify-content:flex-end;margin-top:16px">
-      <button class="btn" id="clh">Close</button>
-    </div>`);
+    ) +
+    '<div style="display:flex;justify-content:flex-end;margin-top:16px">' +
+      '<button class="btn" id="clh">Close</button>' +
+    '</div>');
   $('clh').onclick = close;
 }
 
 function attend(cid){
   const c=S.classes.find(x=>x.id===cid);if(!c)return;
   const a=S.att[cid]||(S.att[cid]={});
-  open(`<h2>${esc(c.name)}</h2><p class="mu" style="margin-top:-6px">${bn(c)}${fmt(c.date)} · ${c.time}</p>
-   ${c.sids.map(id=>{const s=stu(id);if(!s)return'';const v=a[id];
-     return `<div class="item nc"><div><h3 style="cursor:pointer;color:var(--pr);text-decoration:underline" data-sh="${id}" title="Click to view attendance history">${esc(s.name)}</h3></div><div class="seg" data-s="${id}">
-      <button class="p ${v==='p'?'on':''}" data-v="p">Present</button><button class="a ${v==='a'?'on':''}" data-v="a">Absent</button><button class="r ${v==='r'?'on':''}" data-v="r">Record</button></div></div>`}).join('')}
-   <div style="display:flex;gap:8px;justify-content:space-between;margin-top:14px">
-    <button class="btn d" id="dc">Delete class</button>
-    <div style="display:flex;gap:8px"><button class="btn g" id="ap">All present</button><button class="btn" id="dn">Done</button></div></div>`);
+  open('<h2>' + esc(c.name) + '</h2><p class="mu" style="margin-top:-6px">' + bn(c) + fmt(c.date) + ' · ' + c.time + '</p>' +
+   c.sids.map(id=>{const s=stu(id);if(!s)return'';const v=a[id];
+     return '<div class="item nc"><div><h3 style="cursor:pointer;color:var(--pr);text-decoration:underline" data-sh="' + id + '" title="Click to view attendance history">' + esc(s.name) + '</h3></div><div class="seg" data-s="' + id + '">' +
+      '<button class="p ' + (v==='p'?'on':'') + '" data-v="p">Present</button><button class="a ' + (v==='a'?'on':'') + '" data-v="a">Absent</button><button class="r ' + (v==='r'?'on':'') + '" data-v="r">Record</button></div></div>';
+   }).join('') +
+   '<div style="display:flex;gap:8px;justify-content:space-between;margin-top:14px">' +
+    '<button class="btn d" id="dc">Delete class</button>' +
+    '<div style="display:flex;gap:8px"><button class="btn g" id="ap">All present</button><button class="btn" id="dn">Done</button></div></div>');
+  
   document.querySelectorAll('#md [data-sh]').forEach(el => el.onclick = () => showStudentHistory(el.dataset.sh));
   document.querySelectorAll('#md .seg button').forEach(b=>b.onclick=()=>{
     const id=b.parentNode.dataset.s;a[id]=a[id]===b.dataset.v?undefined:b.dataset.v;if(!a[id])delete a[id];
-    save();attend(cid);render()});
+    save();attend(cid);render();
+  });
   $('ap').onclick=()=>{c.sids.forEach(id=>a[id]='p');save();attend(cid);render()};
   $('dn').onclick=close;
   $('dc').onclick=()=>confirmBox('Delete this class?',()=>{S.classes=S.classes.filter(x=>x.id!==cid);delete S.att[cid];save();close();render()});
@@ -264,202 +604,309 @@ function attend(cid){
 
 /* ---------- Students ---------- */
 function renderStu(){
-  $('stu').innerHTML=`<div class="grid" style="grid-template-columns:1fr 1.4fr">
-   <div class="card"><h2>Add student</h2><label>Name</label><input id="sn" placeholder="Student name">
-    <label>Number of classes allowed</label><input id="sq" type="number" min="1" value="8">
-    <button class="btn" id="sa" style="margin-top:14px;width:100%">Add student</button>
-    <label style="margin-top:16px">Or paste a list (one per line, optional “, 8” for classes)</label>
-    <textarea id="sb" rows="4" style="width:100%;font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:9px;padding:8px" placeholder="Anita, 8&#10;Ravi, 10"></textarea>
-    <button class="btn g" id="sbb" style="margin-top:8px;width:100%">Import list</button></div>
-   <div class="card"><div class="cal-h"><h2 style="margin:0">Students (${S.students.length})</h2><span class="mu">Click any name for history</span></div>
-    ${S.students.length?S.students.map(s=>{const t=scheduled(s.id).length,p=Math.min(100,t/s.quota*100);
-      return `<div class="item" data-sh="${s.id}" title="Click to view attendance history" style="cursor:pointer"><div style="flex:1"><h3 style="color:var(--pr);text-decoration:underline">${esc(s.name)}</h3><span class="mu">${t} of ${s.quota} classes scheduled</span><div class="bar"><i style="width:${p}%"></i></div></div>
-      <div style="display:flex;gap:6px" onclick="event.stopPropagation()"><button class="btn g sm" data-q="${s.id}">Edit quota</button><button class="btn d sm" data-x="${s.id}">Remove</button></div></div>`}).join(''):'<div class="empty">No students yet.</div>'}</div></div>`;
+  $('stu').innerHTML='<div class="grid" style="grid-template-columns:1fr 1.4fr">' +
+   '<div class="card"><h2>Add student</h2><label>Name</label><input id="sn" placeholder="Student name">' +
+    '<label>Number of classes allowed</label><input id="sq" type="number" min="1" value="8">' +
+    '<button class="btn" id="sa" style="margin-top:14px;width:100%">Add student</button>' +
+    '<label style="margin-top:16px">Or paste a list (one per line, optional “, 8” for classes)</label>' +
+    '<textarea id="sb" rows="4" style="width:100%;font:inherit;color:var(--tx);background:var(--bg);border:1px solid var(--bd);border-radius:9px;padding:8px" placeholder="Anita, 8&#10;Ravi, 10"></textarea>' +
+    '<button class="btn g" id="sbb" style="margin-top:8px;width:100%">Import list</button></div>' +
+   '<div class="card"><div class="cal-h"><h2 style="margin:0">Students (' + S.students.length + ')</h2><span class="mu">Click name for history</span></div>' +
+    (S.students.length?S.students.map(s=>{const t=scheduled(s.id).length,p=Math.min(100,t/s.quota*100);
+      return '<div class="item" data-sh="' + s.id + '" title="Click to view attendance history" style="cursor:pointer"><div style="flex:1"><h3 style="color:var(--pr);text-decoration:underline">' + esc(s.name) + '</h3><span class="mu">' + t + ' of ' + s.quota + ' classes scheduled</span><div class="bar"><i style="width:' + p + '%"></i></div></div>' +
+      '<div style="display:flex;gap:6px" onclick="event.stopPropagation()"><button class="btn g sm" data-q="' + s.id + '">Edit quota</button><button class="btn d sm" data-x="' + s.id + '">Remove</button></div></div>';
+    }).join(''):'<div class="empty">No students yet.</div>') + '</div></div>';
+
   const add=(n,q)=>{if(n)S.students.push({id:uid(),name:n,quota:Math.max(1,q||8)})};
-  $('sa').onclick=()=>{const n=$('sn').value.trim();if(!n){toast('Enter a name.');return}add(n,+$('sq').value);save();render()};
-  $('sbb').onclick=()=>{$('sb').value.split('\n').forEach(l=>{const[p,q]=l.split(',');if(p&&p.trim())add(p.trim(),parseInt(q))});save();render()};
+  $('sa').onclick=()=>{const n=$('sn').value.trim();if(!n){toast('Enter a name.');return}add(n,+$('sq').value);save();render();};
+  $('sbb').onclick=()=>{$('sb').value.split('\n').forEach(l=>{const[p,q]=l.split(',');if(p&&p.trim())add(p.trim(),parseInt(q))});save();render();};
   document.querySelectorAll('#stu [data-sh]').forEach(el => el.onclick = () => showStudentHistory(el.dataset.sh));
   document.querySelectorAll('[data-x]').forEach(b=>b.onclick=e=>{e.stopPropagation();confirmBox('Remove this student and their schedule entries?',()=>{const id=b.dataset.x;
-    S.students=S.students.filter(s=>s.id!==id);S.batches.forEach(b=>b.sids=b.sids.filter(x=>x!==id));S.classes.forEach(c=>c.sids=c.sids.filter(x=>x!==id));S.classes=S.classes.filter(c=>c.sids.length);save();close();render()})});
+    S.students=S.students.filter(s=>s.id!==id);S.batches.forEach(b=>b.sids=b.sids.filter(x=>x!==id));S.classes.forEach(c=>c.sids=c.sids.filter(x=>x!==id));S.classes=S.classes.filter(c=>c.sids.length);save();close();render();})});
   document.querySelectorAll('[data-q]').forEach(b=>b.onclick=e=>{e.stopPropagation();const s=stu(b.dataset.q);
-    open(`<h2>Edit classes for ${esc(s.name)}</h2><p class="mu">Already scheduled: ${scheduled(s.id).length}</p><label>Number of classes allowed</label><input id="qv" type="number" min="1" value="${s.quota}"><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn g" id="qx">Cancel</button><button class="btn" id="qs">Save</button></div>`);
+    open('<h2>Edit classes for ' + esc(s.name) + '</h2><p class="mu">Already scheduled: ' + scheduled(s.id).length + '</p><label>Number of classes allowed</label><input id="qv" type="number" min="1" value="' + s.quota + '"><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px"><button class="btn g" id="qx">Cancel</button><button class="btn" id="qs">Save</button></div>');
     $('qx').onclick=close;
-    $('qs').onclick=()=>{const v=parseInt($('qv').value);if(!(v>0)){toast('Enter a valid number.');return}s.quota=v;save();close();render()}});
+    $('qs').onclick=()=>{const v=parseInt($('qv').value);if(!(v>0)){toast('Enter a valid number.');return}s.quota=v;save();close();render();}});
 }
 
 /* ---------- Completed ---------- */
 function renderDone(){
   const list=S.students.map(s=>({s,st:stats(s)})).filter(x=>x.st.done);
-  $('done').innerHTML=`<div class="card"><h2>Students whose scheduled classes are over</h2>
-   <p class="mu" style="margin-top:-6px">Shown once all allotted classes are scheduled and finished, whether attended or not.</p>
-   ${list.length?list.map(({s,st})=>{const pr=st.list.filter(c=>S.att[c.id]&&S.att[c.id][s.id]==='p').length,rc=st.list.filter(c=>S.att[c.id]&&S.att[c.id][s.id]==='r').length;
-    return `<div class="item" data-sh="${s.id}" style="cursor:pointer" title="Click to view attendance history"><div><h3 style="color:var(--pr);text-decoration:underline">${esc(s.name)}</h3><span class="mu">${st.total} classes completed</span></div>
-    <div><span class="pill p-g">${pr} attended</span> <span class="pill p-a">${rc} record</span> <span class="pill p-r">${st.total-pr-rc} missed</span></div></div>`}).join(''):'<div class="empty">No students have completed their scheduled classes yet.</div>'}</div>`;
+  $('done').innerHTML='<div class="card"><h2>Students whose scheduled classes are over</h2>' +
+   '<p class="mu" style="margin-top:-6px">Shown once all allotted classes are scheduled and finished, whether attended or not.</p>' +
+   (list.length?list.map(({s,st})=>{const pr=st.list.filter(c=>S.att[c.id]&&S.att[c.id][s.id]==='p').length,rc=st.list.filter(c=>S.att[c.id]&&S.att[c.id][s.id]==='r').length;
+    return '<div class="item" data-sh="' + s.id + '" style="cursor:pointer" title="Click to view attendance history"><div><h3 style="color:var(--pr);text-decoration:underline">' + esc(s.name) + '</h3><span class="mu">' + st.total + ' classes completed</span></div>' +
+    '<div><span class="pill p-g">' + pr + ' attended</span> <span class="pill p-a">' + rc + ' record</span> <span class="pill p-r">' + (st.total-pr-rc) + ' missed</span></div></div>';
+   }).join(''):'<div class="empty">No students have completed their scheduled classes yet.</div>') + '</div>';
   document.querySelectorAll('#done [data-sh]').forEach(b=>b.onclick=()=>showStudentHistory(b.dataset.sh));
 }
 
+/* ---------- Batch Creation / Editing with Multi-Day and Multi-Week Selection ---------- */
 function batchForm(id){
-  const b = id ? S.batches.find(x => x.id === id) : { name: '', sids: [], day: (new Date().getDay() + 1) % 7, time: '10:00' };
-  const initialDay = (b.day !== undefined && b.day !== null) ? parseInt(b.day) : ((new Date().getDay() + 1) % 7);
-  const initialDate = getNextDateForDay(initialDay);
-
-  open(`<h2>${id ? 'Edit batch' : 'New batch'}</h2>
-    <label>Batch name</label>
-    <input id="bnm" value="${esc(b.name)}" placeholder="e.g. Morning Batch A">
-    
-    <div class="row">
-      <div>
-        <label>Class Day (every week)</label>
-        <select id="bday">
-          ${DAYS.map((d, i) => `<option value="${i}" ${i === initialDay ? 'selected' : ''}>${d}</option>`).join('')}
-        </select>
-      </div>
-      <div>
-        <label>Class Time</label>
-        <input id="btm" type="time" value="${b.time || '10:00'}">
-      </div>
-    </div>
-
-    <div class="row">
-      <div>
-        <label>First Class Date</label>
-        <input id="bstart" type="date" value="${initialDate}">
-      </div>
-      <div>
-        <label>Number of weekly sessions</label>
-        <input id="brep" type="number" min="1" max="52" value="8">
-      </div>
-    </div>
-
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
-      <label style="margin:0">Students in this batch</label>
-      ${S.students.length ? '<button type="button" class="btn g sm" id="ball" style="padding:2px 8px;font-size:11px">Select All</button>' : ''}
-    </div>
-    ${S.students.length ? `
-      <div style="max-height:160px;overflow-y:auto;border:1px solid var(--bd);border-radius:9px;padding:8px;margin-top:4px">
-        ${S.students.map(s => `
-          <label class="chk" style="color:var(--tx);font-size:14px">
-            <input type="checkbox" value="${s.id}" ${b.sids.includes(s.id) ? 'checked' : ''}> ${esc(s.name)}
-          </label>
-        `).join('')}
-      </div>` : '<div class="mu">Add students first in the Students tab.</div>'
-    }
-
-    ${id ? `<label class="chk" style="margin-top:10px"><input type="checkbox" id="bsched"> Also schedule new weekly classes for this batch</label>` : ''}
-
-    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
-      <button class="btn g" id="bx">Cancel</button>
-      <button class="btn" id="bs">${id ? 'Save batch' : 'Save & Schedule Batch'}</button>
-    </div>`);
-
-  $('bx').onclick = close;
-  if ($('ball')) {
-    $('ball').onclick = () => {
-      const inputs = document.querySelectorAll('#md .chk input[type="checkbox"]');
-      const allChecked = [...inputs].every(i => i.checked);
-      inputs.forEach(i => i.checked = !allChecked);
-      $('ball').textContent = allChecked ? 'Select All' : 'Deselect All';
-    };
+  const b = id ? S.batches.find(x => x.id === id) : null;
+  
+  // Selected days: default to Tuesday (2) & Thursday (4) for 2-day scheduling!
+  let selectedDays = [];
+  if (b) {
+    if (Array.isArray(b.days) && b.days.length) selectedDays = [...b.days];
+    else if (b.day !== null && b.day !== undefined) selectedDays = [parseInt(b.day)];
+  }
+  if (!selectedDays.length) {
+    selectedDays = [2, 4]; // Default: 2 days!
   }
 
-  $('bday').onchange = () => {
-    $('bstart').value = getNextDateForDay(parseInt($('bday').value));
-  };
+  let selectedWeeks = (b && b.weeks) ? parseInt(b.weeks) : 2; // Default: 2 weeks!
+  let classTime = (b && b.time) ? b.time : '10:00';
+  let initialStartDate = getEarliestUpcomingDate(selectedDays);
 
-  $('bs').onclick = () => {
-    const name = $('bnm').value.trim();
-    const day = parseInt($('bday').value);
-    const time = $('btm').value;
-    const startDate = $('bstart').value;
-    const rep = Math.max(1, parseInt($('brep').value) || 1);
-    const ids = [...document.querySelectorAll('#md .chk input[type="checkbox"]:checked')].map(i => i.value);
+  const renderModalContent = () => {
+    const dayButtonsHtml = [1, 2, 3, 4, 5, 6, 0].map(dayIdx => {
+      const isSelected = selectedDays.includes(dayIdx);
+      return '<button type="button" class="btn sm day-btn ' + (isSelected ? 'active' : 'g') + '" data-d="' + dayIdx + '" style="min-width:48px;font-weight:600">' +
+        DAYS_SHORT[dayIdx] +
+      '</button>';
+    }).join(' ');
 
-    if (!name) { toast('Enter a batch name.'); return; }
-    if (!time) { toast('Enter a class time.'); return; }
-    if (!startDate) { toast('Select a start date.'); return; }
+    const selectedDaysNames = selectedDays.slice().sort((x,y)=>(x===0?7:x)-(y===0?7:y)).map(d => DAYS[d]).join(', ');
+    const totalClassesCount = selectedDays.length * selectedWeeks;
 
-    let batchId = id;
-    if (id) {
-      b.name = name;
-      b.sids = ids;
-      b.day = day;
-      b.time = time;
-    } else {
-      batchId = uid();
-      const newBatch = { id: batchId, name, sids: ids, day, time };
-      S.batches.push(newBatch);
-    }
+    open('<h2>' + (id ? 'Edit Batch' : 'New Batch & Multi-Week Schedule') + '</h2>' +
+      '<label>Batch Name</label>' +
+      '<input id="bnm" value="' + esc(b ? b.name : '') + '" placeholder="e.g. Maths Grade 10 - Batch A">' +
+      
+      '<!-- Day Selection (Select any 2 days, 1 day, or more) -->' +
+      '<label style="margin-top:12px">Select Class Days (e.g. select any 2 days per week)</label>' +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 6px" id="dayButtonsContainer">' +
+        dayButtonsHtml +
+      '</div>' +
+      '<div class="mu" id="daySelectionText" style="font-size:12px;margin-bottom:10px">' +
+        (selectedDays.length ? 'Selected (' + selectedDays.length + ' days/week): <b>' + selectedDaysNames + '</b>' : '<span style="color:var(--rd)">⚠️ Please select at least 1 day</span>') +
+      '</div>' +
 
-    const shouldSchedule = !id || ($('bsched') && $('bsched').checked);
-    let made = 0;
-    const skipped = new Set();
+      '<div class="row">' +
+        '<div>' +
+          '<label>Class Time</label>' +
+          '<input id="btm" type="time" value="' + classTime + '">' +
+        '</div>' +
+        '<div>' +
+          '<label>Starting From</label>' +
+          '<input id="bstart" type="date" value="' + initialStartDate + '">' +
+        '</div>' +
+      '</div>' +
 
-    if (shouldSchedule && ids.length) {
-      for (let r = 0; r < rep; r++) {
-        const d = new Date(startDate + 'T00:00');
-        d.setDate(d.getDate() + 7 * r);
-        const ok = ids.filter(sid => {
-          const s = stu(sid);
-          if (!s) return false;
-          if (scheduled(sid).length < s.quota) return true;
-          skipped.add(s.name);
-          return false;
-        });
-        if (ok.length) {
-          S.classes.push({
-            id: uid(),
-            name: `${name} (Session ${r + 1})`,
-            date: ymd(d),
-            time,
-            bid: batchId,
-            sids: ok
-          });
-          made++;
+      '<!-- Weeks Selection (2 weeks, 4 weeks, etc.) -->' +
+      '<label style="margin-top:12px">Schedule Duration (Weeks)</label>' +
+      '<div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:4px 0 6px">' +
+        '<button type="button" class="btn sm week-preset ' + (selectedWeeks === 1 ? '' : 'g') + '" data-w="1">1 Week</button>' +
+        '<button type="button" class="btn sm week-preset ' + (selectedWeeks === 2 ? '' : 'g') + '" data-w="2">2 Weeks (Default)</button>' +
+        '<button type="button" class="btn sm week-preset ' + (selectedWeeks === 4 ? '' : 'g') + '" data-w="4">4 Weeks</button>' +
+        '<button type="button" class="btn sm week-preset ' + (selectedWeeks === 8 ? '' : 'g') + '" data-w="8">8 Weeks</button>' +
+        '<input id="bweeks" type="number" min="1" max="52" value="' + selectedWeeks + '" style="width:65px;text-align:center;padding:5px 8px">' +
+        '<span class="mu" style="font-size:12px">weeks</span>' +
+      '</div>' +
+
+      '<!-- Live Calculation Banner -->' +
+      '<div style="background:var(--amb);color:var(--am);padding:8px 12px;border-radius:8px;font-size:13px;font-weight:600;margin:10px 0" id="schedulePreviewBanner">' +
+        '📅 Will automatically schedule: ' + totalClassesCount + ' classes (' + selectedDays.length + ' days × ' + selectedWeeks + ' weeks)' +
+      '</div>' +
+
+      '<!-- Students selection -->' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">' +
+        '<label style="margin:0">Students in this Batch</label>' +
+        (S.students.length ? '<button type="button" class="btn g sm" id="ball" style="padding:2px 8px;font-size:11px">Select All</button>' : '') +
+      '</div>' +
+      (S.students.length ? 
+        '<div style="max-height:140px;overflow-y:auto;border:1px solid var(--bd);border-radius:9px;padding:8px;margin-top:4px">' +
+          S.students.map(s => 
+            '<label class="chk" style="color:var(--tx);font-size:14px">' +
+              '<input type="checkbox" value="' + s.id + '" ' + ((b && b.sids.includes(s.id)) ? 'checked' : '') + '> ' + esc(s.name) +
+            '</label>'
+          ).join('') +
+        '</div>' : '<div class="mu">Add students first in the Students tab.</div>'
+      ) +
+
+      (id ? '<label class="chk" style="margin-top:10px"><input type="checkbox" id="bsched"> Also schedule new classes for these dates</label>' : '') +
+
+      '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">' +
+        '<button class="btn g" id="bx">Cancel</button>' +
+        '<button class="btn" id="bs">' + (id ? 'Save Batch' : 'Save & Schedule Batch') + '</button>' +
+      '</div>');
+
+    $('bx').onclick = close;
+
+    // Toggle day selection
+    document.querySelectorAll('#md .day-btn').forEach(btn => {
+      btn.onclick = () => {
+        const d = parseInt(btn.dataset.d);
+        if (selectedDays.includes(d)) {
+          selectedDays = selectedDays.filter(x => x !== d);
+        } else {
+          selectedDays.push(d);
         }
-      }
+        initialStartDate = getEarliestUpcomingDate(selectedDays);
+        classTime = $('btm').value;
+        const currentName = $('bnm').value;
+        renderModalContent();
+        $('bnm').value = currentName;
+      };
+    });
+
+    // Week preset buttons
+    document.querySelectorAll('#md .week-preset').forEach(btn => {
+      btn.onclick = () => {
+        selectedWeeks = parseInt(btn.dataset.w);
+        $('bweeks').value = selectedWeeks;
+        updatePreviewBanner();
+      };
+    });
+
+    $('bweeks').oninput = () => {
+      selectedWeeks = Math.max(1, parseInt($('bweeks').value) || 1);
+      updatePreviewBanner();
+    };
+
+    function updatePreviewBanner(){
+      const cnt = selectedDays.length * selectedWeeks;
+      $('schedulePreviewBanner').textContent = '📅 Will automatically schedule: ' + cnt + ' classes (' + selectedDays.length + ' days × ' + selectedWeeks + ' weeks)';
+      document.querySelectorAll('#md .week-preset').forEach(btn => {
+        btn.className = 'btn sm week-preset ' + (parseInt(btn.dataset.w) === selectedWeeks ? '' : 'g');
+      });
     }
 
-    save();
-    close();
-    render();
+    if ($('ball')) {
+      $('ball').onclick = () => {
+        const inputs = document.querySelectorAll('#md .chk input[type="checkbox"]');
+        const allChecked = [...inputs].every(i => i.checked);
+        inputs.forEach(i => i.checked = !allChecked);
+        $('ball').textContent = allChecked ? 'Select All' : 'Deselect All';
+      };
+    }
 
-    if (shouldSchedule) {
-      if (made) {
-        toast(`Batch saved! Scheduled ${made} weekly classes.` + (skipped.size ? ` (Quota reached for: ${[...skipped].join(', ')})` : ''));
-      } else if (ids.length) {
-        toast('Batch saved, but students reached quota so no classes were added.');
+    // Save handler
+    $('bs').onclick = () => {
+      const name = $('bnm').value.trim();
+      const time = $('btm').value;
+      const startDate = $('bstart').value;
+      const weeks = Math.max(1, parseInt($('bweeks').value) || 1);
+      const ids = [...document.querySelectorAll('#md .chk input[type="checkbox"]:checked')].map(i => i.value);
+
+      if (!name) { toast('Please enter a batch name.'); return; }
+      if (!selectedDays.length) { toast('Please select at least 1 class day (e.g. 2 days per week).'); return; }
+      if (!time) { toast('Please enter a class time.'); return; }
+      if (!startDate) { toast('Please select a start date.'); return; }
+
+      let batchId = id;
+      if (id) {
+        b.name = name;
+        b.sids = ids;
+        b.days = selectedDays;
+        b.day = selectedDays[0];
+        b.time = time;
+        b.weeks = weeks;
       } else {
-        toast('Batch saved without classes (no students selected).');
+        batchId = uid();
+        const newBatch = {
+          id: batchId,
+          name,
+          sids: ids,
+          days: selectedDays,
+          day: selectedDays[0],
+          time,
+          weeks
+        };
+        S.batches.push(newBatch);
       }
-    } else {
-      toast('Batch updated successfully.');
-    }
+
+      const shouldSchedule = !id || ($('bsched') && $('bsched').checked);
+      let made = 0;
+      const skipped = new Set();
+
+      if (shouldSchedule && ids.length) {
+        const scheduledDates = getDatesForSelectedDays(selectedDays, startDate, weeks);
+        
+        scheduledDates.forEach((dateStr, idx) => {
+          const ok = ids.filter(sid => {
+            const s = stu(sid);
+            if (!s) return false;
+            if (scheduled(sid).length < s.quota) return true;
+            skipped.add(s.name);
+            return false;
+          });
+
+          if (ok.length) {
+            S.classes.push({
+              id: uid(),
+              name: name + ' (Session ' + (idx + 1) + ')',
+              date: dateStr,
+              time,
+              bid: batchId,
+              sids: ok
+            });
+            made++;
+          }
+        });
+      }
+
+      save();
+      close();
+      render();
+
+      if (shouldSchedule) {
+        if (made) {
+          toast('🎉 Batch saved! Scheduled ' + made + ' classes across ' + weeks + ' weeks on ' + selectedDaysNames + '.' + (skipped.size ? ' (Quota reached: ' + [...skipped].join(', ') + ')' : ''));
+        } else if (ids.length) {
+          toast('Batch saved, but students reached their class quota.');
+        } else {
+          toast('Batch saved without classes (no students selected).');
+        }
+      } else {
+        toast('Batch updated successfully.');
+      }
+    };
   };
+
+  renderModalContent();
 }
 
 function renderBat(){
-  $('bat').innerHTML=`<div class="card"><div class="cal-h"><h2 style="margin:0">Batches (${S.batches.length})</h2><button class="btn sm" id="nb">+ New batch</button></div>
-   ${S.batches.length?S.batches.map(b=>{
-     const schedInfo = (b.day !== undefined && b.day !== null && DAYS[b.day]) ? `${DAYS[b.day]}s at ${b.time || '10:00'} · ` : '';
-     return `<div class="item nc"><div style="flex:1">
-       <h3>${esc(b.name)}</h3>
-       <span class="mu">${schedInfo}${b.sids.length} student${b.sids.length!==1?'s':''}: ${b.sids.map(i=>stu(i)).filter(Boolean).map(s=>`<span style="color:var(--pr);text-decoration:underline;cursor:pointer" data-sh="${s.id}" title="Click to view attendance history">${esc(s.name)}</span>`).join(', ')||'none'}</span>
-     </div>
-     <div style="display:flex;gap:6px"><button class="btn g sm" data-be="${b.id}">Edit</button><button class="btn d sm" data-bd="${b.id}">Delete</button></div></div>`
-   }).join(''):'<div class="empty">No batches yet. Create one, and weekly classes will be scheduled automatically.</div>'}</div>`;
+  $('bat').innerHTML='<div class="card"><div class="cal-h"><h2 style="margin:0">Batches (' + S.batches.length + ')</h2><button class="btn sm" id="nb">+ New batch</button></div>' +
+   (S.batches.length?S.batches.map(b=>{
+     let daysList = [];
+     if (Array.isArray(b.days) && b.days.length) daysList = b.days;
+     else if (b.day !== null && b.day !== undefined) daysList = [b.day];
+     
+     const daysText = daysList.length ? daysList.slice().sort((x,y)=>(x===0?7:x)-(y===0?7:y)).map(d => DAYS_SHORT[d]).join(', ') : 'Flexible';
+     const schedInfo = daysText + ' at ' + (b.time || '10:00') + ' · ' + (b.weeks ? b.weeks + ' wks recurring · ' : '');
+     
+     return '<div class="item nc"><div style="flex:1">' +
+       '<h3>' + esc(b.name) + '</h3>' +
+       '<span class="mu">' + schedInfo + b.sids.length + ' student' + (b.sids.length!==1?'s':'') + ': ' + (b.sids.map(i=>stu(i)).filter(Boolean).map(s=>'<span style="color:var(--pr);text-decoration:underline;cursor:pointer" data-sh="' + s.id + '" title="Click to view attendance history">' + esc(s.name) + '</span>').join(', ')||'none') + '</span>' +
+     '</div>' +
+     '<div style="display:flex;gap:6px"><button class="btn g sm" data-be="' + b.id + '">Edit</button><button class="btn d sm" data-bd="' + b.id + '">Delete</button></div></div>';
+   }).join(''):'<div class="empty">No batches yet. Click "+ New batch" to select your days and schedule classes automatically across weeks.</div>') + '</div>';
+
   $('nb').onclick=()=>batchForm();
   document.querySelectorAll('#bat [data-sh]').forEach(el => el.onclick = () => showStudentHistory(el.dataset.sh));
   document.querySelectorAll('[data-be]').forEach(x=>x.onclick=()=>batchForm(x.dataset.be));
-  document.querySelectorAll('[data-bd]').forEach(x=>x.onclick=()=>confirmBox('Delete this batch? Already scheduled classes stay.',()=>{S.batches=S.batches.filter(b=>b.id!==x.dataset.bd);save();close();render()}));
+  document.querySelectorAll('[data-bd]').forEach(x=>x.onclick=()=>confirmBox('Delete this batch? Already scheduled classes stay.',()=>{S.batches=S.batches.filter(b=>b.id!==x.dataset.bd);save();close();render();}));
 }
+
 function render(){
   const n=S.students.filter(s=>stats(s).done).length,b=$('bd');b.hidden=!n;b.textContent=n;
   ['cal','stu','bat','done'].forEach(v=>$(v).hidden=v!==view);
   if(view==='cal')renderCal();if(view==='stu')renderStu();if(view==='bat')renderBat();if(view==='done')renderDone();
 }
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{view=b.dataset.v;
-  document.querySelectorAll('nav button').forEach(x=>x.classList.toggle('on',x===b));render()});
-loadState().then(render);setInterval(()=>{const n=S.students.filter(s=>stats(s).done).length;$('bd').hidden=!n;$('bd').textContent=n},60000);
+
+document.querySelectorAll('nav button[data-v]').forEach(b=>b.onclick=()=>{
+  view=b.dataset.v;
+  document.querySelectorAll('nav button[data-v]').forEach(x=>x.classList.toggle('on',x===b));
+  render();
+});
+
+$('syncNav').onclick = openSyncModal;
+
+loadState().then(render);
+setInterval(()=>{const n=S.students.filter(s=>stats(s).done).length;$('bd').hidden=!n;$('bd').textContent=n},60000);
 })();
 </script>
 </body>

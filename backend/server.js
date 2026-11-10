@@ -5,6 +5,15 @@ require('./db'); // creates tables on first run
 const app = express();
 app.use(express.json({ limit: '1mb' }));
 
+// Enable CORS for cross-device & GitHub Pages access
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') return res.sendStatus(200);
+  next();
+});
+
 app.use('/api/state', require('./routes/state'));
 app.use('/api/students', require('./routes/students'));
 app.use('/api/batches', require('./routes/batches'));
@@ -21,4 +30,7 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`ClassTrack running at http://localhost:${PORT}`));
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`ClassTrack backend running on port ${PORT}`);
+  console.log(`Localhost: http://localhost:${PORT}`);
+});

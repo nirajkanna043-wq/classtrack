@@ -70,5 +70,7 @@ CREATE TABLE IF NOT EXISTS attendance (
 
 try { db.exec('ALTER TABLE batches ADD COLUMN day INTEGER'); } catch(e){}
 try { db.exec('ALTER TABLE batches ADD COLUMN time TEXT'); } catch(e){}
+try { db.exec('ALTER TABLE batches ADD COLUMN days TEXT'); } catch(e){}
+try { db.exec('ALTER TABLE batches ADD COLUMN weeks INTEGER'); } catch(e){}
 
 module.exports = db;

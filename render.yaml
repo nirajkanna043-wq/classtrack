@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: classtrack-backend
+    env: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_VERSION
+        value: 20
