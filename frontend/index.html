@@ -64,7 +64,7 @@ label{font-size:13px;color:var(--mu);display:block;margin:10px 0 4px}
 .toast{position:fixed;bottom:calc(20px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);background:var(--tx);color:var(--bg);padding:10px 16px;border-radius:10px;z-index:30;display:none;font-size:14px;max-width:90%;box-shadow:0 4px 12px rgba(0,0,0,.15);text-align:center}
 .day-btn{min-width:44px;text-align:center;transition:all .15s}
 .day-btn.active{background:var(--pr);color:var(--prt);border-color:var(--pr)}
-.nav-sync-btn{border:1px solid var(--bd);background:var(--bg);color:var(--tx);border-radius:8px;padding:6px 10px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.nav-sync-btn{border:1px solid var(--bd);background:var(--bg);color:var(--tx);border-radius:8px;padding:6px 12px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
 </style>
 </head>
 <body>
@@ -75,9 +75,9 @@ label{font-size:13px;color:var(--mu);display:block;margin:10px 0 4px}
     <button data-v="stu">Students</button>
     <button data-v="bat">Batches</button>
     <button data-v="done">Completed<span class="badge" id="bd" hidden></span></button>
-    <button class="nav-sync-btn" id="syncNav" title="Sync data between iPad, laptop, and phone">
-      <span>📱 Sync to iPad</span>
-      <span class="pill p-n" id="netPill" style="font-size:10px;padding:1px 6px">Offline</span>
+    <button class="nav-sync-btn" id="syncNav" title="Default Automatic Cloud Sync across all your devices">
+      <span id="syncStatusDot">🟢</span>
+      <span id="syncStatusText">Cloud Synced</span>
     </button>
   </nav>
 </div></header>
@@ -92,47 +92,44 @@ label{font-size:13px;color:var(--mu);display:block;margin:10px 0 4px}
 
 <script>
 (function(){
-const KEY='classtrack_v1';
-const SERVER_KEY='classtrack_server_url';
-const PANTRY_KEY='classtrack_pantry_id';
+const KEY = 'classtrack_v1';
+const SERVER_KEY = 'classtrack_server_url';
+const DEFAULT_CLOUD_ID = 'ff808181a09d98f701a1c4209ae17975';
+const DEFAULT_CLOUD_URL = 'https://api.restful-api.dev/objects/' + DEFAULT_CLOUD_ID;
+
 const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
 const DAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
-let S={students:[],batches:[],classes:[],att:{}};
+let S = { students: [], batches: [], classes: [], att: {} };
 let serverUrl = localStorage.getItem(SERVER_KEY) || '';
-let pantryId = localStorage.getItem(PANTRY_KEY) || '';
-let hasBackend = false;
+let hasCustomBackend = false;
+let isSyncing = false;
 
 const getApiBase = () => (serverUrl ? serverUrl.replace(/\/$/, '') : '') + '/api';
-
-const api = (m, u, b) => fetch(getApiBase() + u, {
-  method: m,
-  headers: { 'Content-Type': 'application/json' },
-  body: b ? JSON.stringify(b) : undefined
-}).then(r => {
-  if (!r.ok && r.status !== 404) throw new Error(r.status);
-  return r;
-});
 
 const j = x => JSON.stringify(x);
 let snap = j(S);
 
-function updateNetBadge(){
-  const pill = document.getElementById('netPill');
-  if (!pill) return;
-  if (hasBackend) {
-    pill.className = 'pill p-g';
-    pill.textContent = 'Cloud Sync';
-  } else if (pantryId) {
-    pill.className = 'pill p-a';
-    pill.textContent = 'Pantry Sync';
-  } else {
-    pill.className = 'pill p-n';
-    pill.textContent = 'Local (Tap Sync)';
+function updateSyncBadge(status){
+  const dot = document.getElementById('syncStatusDot');
+  const txt = document.getElementById('syncStatusText');
+  if (!dot || !txt) return;
+  if (status === 'syncing') {
+    dot.textContent = '⏳';
+    txt.textContent = 'Syncing...';
+  } else if (status === 'online') {
+    dot.textContent = '🟢';
+    txt.textContent = 'Cloud Synced';
+  } else if (status === 'offline') {
+    dot.textContent = '📱';
+    txt.textContent = 'Local (Offline)';
+  } else if (status === 'error') {
+    dot.textContent = '⚠️';
+    txt.textContent = 'Sync Error';
   }
 }
 
-// Check for direct sync hash in URL (transferred from laptop to iPad)
+// Check for direct sync hash in URL (for instant 1-tap transfer)
 function checkUrlHashSync(){
   if (window.location.hash && window.location.hash.startsWith('#sync=')) {
     try {
@@ -146,7 +143,7 @@ function checkUrlHashSync(){
           att: incoming.att || {}
         };
         save();
-        toast('🎉 Synced from your other device! Loaded ' + S.students.length + ' students and ' + S.batches.length + ' batches.');
+        toast('🎉 Synced from link! Loaded ' + S.students.length + ' students and ' + S.batches.length + ' batches.');
         try { history.replaceState(null, '', window.location.pathname + window.location.search); } catch(e){}
         return true;
       }
@@ -157,55 +154,119 @@ function checkUrlHashSync(){
   return false;
 }
 
-async function loadState(){
-  // 1. If URL sync hash is provided, it takes priority
+const saveLocal = () => {
+  try { localStorage.setItem(KEY, j(S)); } catch(e){}
+};
+
+// Automatic Default Cloud Loading
+async function loadState(isSilent = false){
   if (checkUrlHashSync()) {
     snap = j(S);
     return;
   }
 
-  // 2. Try REST API backend (e.g. Render cloud or localhost)
-  try {
-    const r = await fetch(getApiBase() + '/state');
-    if (!r.ok) throw 0;
-    S = await r.json();
-    hasBackend = true;
-    try { localStorage.setItem(KEY, j(S)); } catch(e){}
-    snap = j(S);
-    updateNetBadge();
-    return;
-  } catch(e) {
-    hasBackend = false;
-  }
-
-  // 3. Try Pantry cloud storage if pantryId is configured
-  if (pantryId) {
+  // 1. If user set a custom backend URL (like Render), try it first
+  if (serverUrl) {
     try {
-      const pr = await fetch('https://getpantry.cloud/apiv1/pantry/' + pantryId + '/basket/classtrack');
-      if (pr.ok) {
-        const cloudData = await pr.json();
-        if (cloudData && Array.isArray(cloudData.students)) {
-          S = cloudData;
-          try { localStorage.setItem(KEY, j(S)); } catch(e){}
-          snap = j(S);
-          updateNetBadge();
-          return;
-        }
+      const r = await fetch(getApiBase() + '/state');
+      if (r.ok) {
+        S = await r.json();
+        hasCustomBackend = true;
+        saveLocal();
+        snap = j(S);
+        updateSyncBadge('online');
+        return;
       }
-    } catch(err){}
+    } catch(e){
+      hasCustomBackend = false;
+    }
   }
 
-  // 4. Fallback to localStorage on this device
+  // Check existing local storage cache
+  let localData = null;
   try {
     const local = localStorage.getItem(KEY);
-    if (local) S = JSON.parse(local);
+    if (local) localData = JSON.parse(local);
   } catch(err){}
+
+  // 2. Default Automatic Cloud Sync: fetch from cloud database
+  try {
+    const r = await fetch(DEFAULT_CLOUD_URL);
+    if (r.ok) {
+      const res = await r.json();
+      if (res && res.data && Array.isArray(res.data.students)) {
+        const cloudData = {
+          students: res.data.students || [],
+          batches: res.data.batches || [],
+          classes: res.data.classes || [],
+          att: res.data.att || {}
+        };
+
+        // Auto-migration: If cloud is currently empty but local browser has students/batches,
+        // automatically upload the local data to the cloud so all other devices receive it immediately!
+        if (cloudData.students.length === 0 && cloudData.batches.length === 0 && localData && (localData.students?.length > 0 || localData.batches?.length > 0)) {
+          S = {
+            students: localData.students || [],
+            batches: localData.batches || [],
+            classes: localData.classes || [],
+            att: localData.att || {}
+          };
+          saveLocal();
+          snap = j(S);
+          save(); // Push to cloud database
+          updateSyncBadge('online');
+          return;
+        }
+
+        // Auto-merge: If both have data, merge local items into cloud items by ID so no device loses data
+        if (localData && (localData.students?.length > 0 || localData.batches?.length > 0)) {
+          const sMap = new Map();
+          (cloudData.students || []).forEach(s => sMap.set(s.id, s));
+          (localData.students || []).forEach(s => { if (!sMap.has(s.id)) sMap.set(s.id, s); });
+          cloudData.students = Array.from(sMap.values());
+
+          const bMap = new Map();
+          (cloudData.batches || []).forEach(b => bMap.set(b.id, b));
+          (localData.batches || []).forEach(b => { if (!bMap.has(b.id)) bMap.set(b.id, b); });
+          cloudData.batches = Array.from(bMap.values());
+
+          const cMap = new Map();
+          (cloudData.classes || []).forEach(c => cMap.set(c.id, c));
+          (localData.classes || []).forEach(c => { if (!cMap.has(c.id)) cMap.set(c.id, c); });
+          cloudData.classes = Array.from(cMap.values());
+
+          cloudData.att = Object.assign({}, localData.att || {}, cloudData.att || {});
+        }
+
+        S = cloudData;
+        saveLocal();
+        snap = j(S);
+        updateSyncBadge('online');
+        return;
+      }
+    }
+  } catch(err) {
+    console.warn('Default cloud fetch failed, using local cache:', err);
+  }
+
+  // 3. Fallback to local storage if offline
+  if (localData) S = localData;
   snap = j(S);
-  updateNetBadge();
+  updateSyncBadge('offline');
 }
 
-async function syncBackend(){
-  if (!hasBackend) return;
+// Custom backend sync helper
+const api = (m, u, b) => fetch(getApiBase() + u, {
+  method: m,
+  headers: { 'Content-Type': 'application/json' },
+  body: b ? JSON.stringify(b) : undefined
+}).then(r => {
+  if (!r.ok && r.status !== 404) throw new Error(r.status);
+  return r;
+});
+
+async function syncCustomBackend(){
+  if (!hasCustomBackend) return;
   const old = JSON.parse(snap), cur = JSON.parse(j(S));
   snap = j(cur);
   for (const c of ['students', 'batches', 'classes']) {
@@ -227,27 +288,58 @@ async function syncBackend(){
   }
 }
 
-async function syncPantry(){
-  if (!pantryId) return;
-  try {
-    await fetch('https://getpantry.cloud/apiv1/pantry/' + pantryId + '/basket/classtrack', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: j(S)
-    });
-  } catch(e){}
-}
-
+// Automatic Default Cloud Saving (with 350ms debounce)
+let cloudSaveTimer = null;
 let q = Promise.resolve();
+
 const save = () => {
-  try { localStorage.setItem(KEY, j(S)); } catch(e){}
-  if (hasBackend) {
-    q = q.then(syncBackend).catch(() => toast('Cloud save failed – check backend status'));
+  saveLocal();
+  updateSyncBadge('syncing');
+
+  if (serverUrl && hasCustomBackend) {
+    q = q.then(syncCustomBackend).catch(() => console.warn('Custom backend sync failed'));
   }
-  if (pantryId) {
-    q = q.then(syncPantry);
-  }
+
+  clearTimeout(cloudSaveTimer);
+  cloudSaveTimer = setTimeout(() => {
+    fetch(DEFAULT_CLOUD_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'classtrack_nirajkanna043_db',
+        data: S
+      })
+    })
+    .then(r => {
+      if (r.ok) updateSyncBadge('online');
+      else updateSyncBadge('error');
+    })
+    .catch(() => updateSyncBadge('offline'));
+  }, 350);
 };
+
+// Automatic real-time background sync when user returns to tab (e.g. iPad unlocked or browser focused)
+window.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    const ov = document.getElementById('ov');
+    if (!ov || !ov.classList.contains('on')) {
+      loadState(true).then(() => render());
+    }
+  }
+});
+window.addEventListener('focus', () => {
+  const ov = document.getElementById('ov');
+  if (!ov || !ov.classList.contains('on')) {
+    loadState(true).then(() => render());
+  }
+});
+// Periodic background refresh every 30 seconds
+setInterval(() => {
+  const ov = document.getElementById('ov');
+  if (!ov || !ov.classList.contains('on')) {
+    loadState(true).then(() => render());
+  }
+}, 30000);
 
 const $ = id => document.getElementById(id);
 const uid = () => Math.random().toString(36).slice(2,9);
@@ -291,16 +383,19 @@ function openSyncModal(){
   const syncUrl = generateIpadSyncUrl();
   const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=' + encodeURIComponent(syncUrl);
 
-  open('<h2>Sync ClassTrack with iPad & Other Devices</h2>' +
-    '<p class="mu" style="margin-top:-6px">Access the exact same students, batches, and attendance across all your devices.</p>' +
+  open('<h2>Cloud Sync Status & Device Transfer</h2>' +
+    '<div style="background:var(--grb);color:var(--gr);padding:10px 14px;border-radius:10px;font-size:13px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;gap:8px">' +
+      '<span>🟢</span>' +
+      '<span>Default Automatic Cloud Sync is ACTIVE! Any device visiting this website will automatically see your latest students & batches.</span>' +
+    '</div>' +
 
     '<!-- Method 1: Instant iPad Scan/Link -->' +
     '<div style="background:var(--bg);padding:14px;border-radius:12px;margin-bottom:14px;border:1px solid var(--bd)">' +
       '<div style="display:flex;justify-content:space-between;align-items:center">' +
-        '<h3 style="margin:0">1. Instant Transfer to iPad (1-Tap Scan)</h3>' +
-        '<span class="pill p-g">Fastest</span>' +
+        '<h3 style="margin:0">Direct iPad Sync Link / QR Code</h3>' +
+        '<span class="pill p-g">Instant</span>' +
       '</div>' +
-      '<p class="mu" style="margin:6px 0 12px;font-size:13px">Point your iPad camera at this QR code, or copy the sync link to transfer everything immediately:</p>' +
+      '<p class="mu" style="margin:6px 0 12px;font-size:13px">You can also scan or copy this direct link to open with all data pre-loaded:</p>' +
       
       '<div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">' +
         '<div style="text-align:center;background:#fff;padding:8px;border-radius:10px;border:1px solid var(--bd)">' +
@@ -308,38 +403,20 @@ function openSyncModal(){
           '<span style="font-size:11px;color:#333;font-weight:600;display:block;margin-top:4px">Scan with iPad Camera</span>' +
         '</div>' +
         '<div style="flex:1;min-width:180px">' +
-          '<button class="btn sm" id="copySyncLink" style="width:100%;margin-bottom:8px">📋 Copy iPad Sync Link</button>' +
+          '<button class="btn sm" id="copySyncLink" style="width:100%;margin-bottom:8px">📋 Copy Direct Sync Link</button>' +
           '<button class="btn g sm" id="shareSyncLink" style="width:100%;margin-bottom:8px">📤 Share Link (AirDrop / WhatsApp)</button>' +
           '<div class="mu" style="font-size:12px">Current Data: <b>' + S.students.length + '</b> students, <b>' + S.batches.length + '</b> batches, <b>' + S.classes.length + '</b> classes.</div>' +
         '</div>' +
       '</div>' +
     '</div>' +
 
-    '<!-- Method 2: Cloud Sync 24/7 -->' +
-    '<div style="background:var(--bg);padding:14px;border-radius:12px;margin-bottom:14px;border:1px solid var(--bd)">' +
-      '<h3 style="margin:0">2. Automatic Cloud Backend (24/7 Real-Time Sync)</h3>' +
-      '<p class="mu" style="margin:6px 0 10px;font-size:13px">Connect a cloud server so all devices update automatically without scanning:</p>' +
-
-      '<label style="margin:4px 0">Backend URL</label>' +
-      '<input id="srvInput" placeholder="e.g. https://classtrack.onrender.com or http://172.16.145.159:3000" value="' + esc(serverUrl) + '">' +
-      
-      '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 0">' +
-        '<button type="button" class="btn g sm" id="useLocalNet" style="font-size:12px">Use Laptop Wi-Fi (172.16.145.159:3000)</button>' +
-        '<button type="button" class="btn g sm" id="useRenderInfo" style="font-size:12px">Deploy Free to Render</button>' +
-      '</div>' +
-
-      '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px">' +
-        '<button class="btn g sm" id="srvClear">Reset</button>' +
-        '<button class="btn sm" id="srvSave">Connect & Sync</button>' +
-      '</div>' +
-    '</div>' +
-
-    '<!-- Method 3: Backup & Restore -->' +
+    '<!-- Method 2: Backup & Restore -->' +
     '<div style="background:var(--bg);padding:14px;border-radius:12px;border:1px solid var(--bd)">' +
-      '<h3 style="margin:0 0 6px">3. Backup & File Restore</h3>' +
+      '<h3 style="margin:0 0 6px">Backup & File Restore</h3>' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
         '<button class="btn g sm" id="expDownload">📥 Download Backup (.json)</button>' +
         '<button class="btn g sm" id="impFileBtn">📤 Restore from File</button>' +
+        '<button class="btn g sm" id="forceCloudSyncBtn">🔄 Force Cloud Refresh</button>' +
       '</div>' +
     '</div>' +
 
@@ -348,6 +425,15 @@ function openSyncModal(){
     '</div>');
 
   $('syncClose').onclick = close;
+
+  $('forceCloudSyncBtn').onclick = () => {
+    toast('Refreshing from cloud database...');
+    loadState().then(() => {
+      render();
+      toast('Refreshed! Loaded ' + S.students.length + ' students.');
+      close();
+    });
+  };
 
   $('copySyncLink').onclick = () => {
     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -378,36 +464,6 @@ function openSyncModal(){
     } else {
       $('copySyncLink').click();
     }
-  };
-
-  $('useLocalNet').onclick = () => {
-    $('srvInput').value = 'http://172.16.145.159:3000';
-  };
-
-  $('useRenderInfo').onclick = () => {
-    window.open('https://render.com/deploy?repo=https://github.com/nirajkanna043-wq/classtrack', '_blank');
-    toast('Opening Render 1-click deployment in new tab...');
-  };
-
-  $('srvClear').onclick = () => {
-    serverUrl = '';
-    localStorage.removeItem(SERVER_KEY);
-    $('srvInput').value = '';
-    loadState().then(() => { render(); updateNetBadge(); openSyncModal(); toast('Reset to local browser storage.'); });
-  };
-
-  $('srvSave').onclick = () => {
-    const url = $('srvInput').value.trim();
-    serverUrl = url;
-    if (url) localStorage.setItem(SERVER_KEY, url);
-    else localStorage.removeItem(SERVER_KEY);
-    toast('Testing connection to backend...');
-    loadState().then(() => {
-      render();
-      updateNetBadge();
-      openSyncModal();
-      toast(hasBackend ? '🟢 Connected to backend server!' : '⚠️ Could not reach server. Check URL.');
-    });
   };
 
   $('expDownload').onclick = () => {
@@ -586,7 +642,7 @@ function attend(cid){
   open('<h2>' + esc(c.name) + '</h2><p class="mu" style="margin-top:-6px">' + bn(c) + fmt(c.date) + ' · ' + c.time + '</p>' +
    c.sids.map(id=>{const s=stu(id);if(!s)return'';const v=a[id];
      return '<div class="item nc"><div><h3 style="cursor:pointer;color:var(--pr);text-decoration:underline" data-sh="' + id + '" title="Click to view attendance history">' + esc(s.name) + '</h3></div><div class="seg" data-s="' + id + '">' +
-      '<button class="p ' + (v==='p'?'on':'') + '" data-v="p">Present</button><button class="a ' + (v==='a'?'on':'') + '" data-v="a">Absent</button><button class="r ' + (v==='r'?'on':'') + '" data-v="r">Record</button></div></div>';
+      '<button class="p ' + (v==='p'?'on':'' + '" data-v="p">Present</button><button class="a ' + (v==='a'?'on':'') + '" data-v="a">Absent</button><button class="r ' + (v==='r'?'on':'') + '" data-v="r">Record</button></div></div>');
    }).join('') +
    '<div style="display:flex;gap:8px;justify-content:space-between;margin-top:14px">' +
     '<button class="btn d" id="dc">Delete class</button>' +
